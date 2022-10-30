@@ -1,4 +1,6 @@
 mod storage;
+
+use std::io::Read;
 use anyhow::{bail, Result};
 
 use aptos_sdk::move_types::account_address::AccountAddress as AptosAccountAddress;
@@ -12,11 +14,11 @@ use crate::storage::InMemoryLazyStorage;
 use hex;
 use move_binary_format::errors::VMResult;
 use move_core_types::value::MoveValue;
+use move_vm_types::values::Value;
 
 const STD_ADDR: AccountAddress = AccountAddress::ONE;
 
 fn main() {
-    println!("Hello, world!");
     exec_func();
 }
 
@@ -52,16 +54,26 @@ fn exec_func() {
     };
     let type_args: Vec<TypeTag> = vec![];
     let signer_account = AccountAddress::from_hex_literal("0x4f31605c22d20bab0488985bda5f310df7b9eca1432e062968b52c1f1a9a92c6").unwrap();
-    let args: Vec<Vec<u8>> = vec![MoveValue::Signer(signer_account).simple_serialize().unwrap(), MoveValue::U64(195).simple_serialize().unwrap()];
-    let account = AccountAddress::from_hex_literal("0xa99959ba3c86270f47e5379958ea4918a6ccc78659a0b37348163e19af54d549");
+    let args: Vec<Vec<u8>> = vec![
+        // MoveValue::Address(signer_account).simple_serialize().unwrap()
+        // MoveValue::Signer(signer_account).simple_serialize().unwrap()
+        // MoveValue::U64(110).simple_serialize().unwrap(),
+        MoveValue::vector_u8("foo".as_bytes().to_vec()).simple_serialize().unwrap(),
+        // MoveValue::U64(110).simple_serialize().unwrap(),
+        // MoveValue::U64(0).simple_serialize().unwrap()
+    ];
+    let account = AccountAddress::from_hex_literal("0x54ad3d30af77b60d939ae356e6606de9a4da67583f02b962d2d3f2e481484e90");
     match account {
         Ok(addr) => {
-            let module = &ModuleId::new(addr, Identifier::new("xen").unwrap());
-            let function = IdentStr::new("claim_rank").unwrap();
+            let module = &ModuleId::new(addr, Identifier::new("packet").unwrap());
+            let function = IdentStr::new("hash_sha3_packet_bytes").unwrap();
             let res = session.execute_function_bypass_visibility(module, function, type_args, args, &mut gas_status);
             match res {
                 Ok(success_result) => {
-                    println!("{}", success_result.return_values.len())
+                    println!("length: {}", success_result.return_values.len());
+                    let val = success_result.return_values.get(0).unwrap().clone();
+                    let deser_val = Value::simple_deserialize(&val.0.to_vec(), &val.1);
+                    println!("deserialized val {}", deser_val.unwrap().to_string());
                 }
                 Err(err) => {
                     println!("Error! {}", err.to_string())
@@ -73,3 +85,5 @@ fn exec_func() {
         }
     }
 }
+
+fn view_resource() {}
