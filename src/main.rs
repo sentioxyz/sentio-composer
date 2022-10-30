@@ -1,5 +1,4 @@
 mod storage;
-
 use anyhow::{bail, Result};
 
 use aptos_sdk::move_types::account_address::AccountAddress as AptosAccountAddress;
@@ -11,6 +10,7 @@ use move_core_types::account_address::{AccountAddress, AccountAddressParseError}
 use move_core_types::identifier::{Identifier, IdentStr};
 use crate::storage::InMemoryLazyStorage;
 use hex;
+use move_binary_format::errors::VMResult;
 use move_core_types::value::MoveValue;
 
 const STD_ADDR: AccountAddress = AccountAddress::ONE;
@@ -51,7 +51,7 @@ fn exec_func() {
         (session, gas_status)
     };
     let type_args: Vec<TypeTag> = vec![];
-    let signer_account = AccountAddress::from_hex_literal("0x0000000000000000000000000000000000000000000000000000000000000001").unwrap();
+    let signer_account = AccountAddress::from_hex_literal("0x4f31605c22d20bab0488985bda5f310df7b9eca1432e062968b52c1f1a9a92c6").unwrap();
     let args: Vec<Vec<u8>> = vec![MoveValue::Signer(signer_account).simple_serialize().unwrap(), MoveValue::U64(195).simple_serialize().unwrap()];
     let account = AccountAddress::from_hex_literal("0xa99959ba3c86270f47e5379958ea4918a6ccc78659a0b37348163e19af54d549");
     match account {
@@ -59,7 +59,14 @@ fn exec_func() {
             let module = &ModuleId::new(addr, Identifier::new("xen").unwrap());
             let function = IdentStr::new("claim_rank").unwrap();
             let res = session.execute_function_bypass_visibility(module, function, type_args, args, &mut gas_status);
-            println!("{}", res.unwrap().return_values.len())
+            match res {
+                Ok(success_result) => {
+                    println!("{}", success_result.return_values.len())
+                }
+                Err(err) => {
+                    println!("Error! {}", err.to_string())
+                }
+            }
         }
         Err(err) => {
             println!("{}", err)

@@ -1,18 +1,24 @@
 use aptos_sdk::move_types::account_address::AccountAddress as AptosAccountAddress;
-use move_core_types::resolver::{ModuleResolver, ResourceResolver};
+use aptos_sdk::move_types::language_storage::StructTag as AptosStructTag;
+
+use move_core_types::resolver::{ModuleResolver, MoveResolver, ResourceResolver};
 use move_core_types::account_address::AccountAddress;
 use std::{
     collections::{btree_map, BTreeMap},
     fmt::Debug,
 };
 use std::str::FromStr;
+use anyhow::anyhow;
 use move_core_types::identifier::Identifier;
-use move_core_types::language_storage::{ModuleId, StructTag};
+use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
 use aptos_sdk::rest_client::{Client, MoveModuleBytecode};
 use url::Url;
 use once_cell::sync::Lazy;
-use futures::executor;
+use move_binary_format::CompiledModule;
+use move_bytecode_utils::layout::TypeLayoutBuilder;
+use move_bytecode_utils::module_cache::{GetModule, ModuleCache};
 use tokio::runtime::Runtime;
+use move_vm_types::values::Value;
 
 /// Simple in-memory storage for modules and resources under an account.
 #[derive(Debug, Clone)]
@@ -90,16 +96,20 @@ impl ResourceResolver for InMemoryLazyStorage {
         let aptos_account = AptosAccountAddress::from_bytes(address.into_bytes());
         match aptos_account {
             Ok(account_address) => {
-                let matched_resource = Runtime::new().unwrap().block_on(rest_client.get_account_resources(account_address))
+                let matched_resource = Runtime::new().unwrap().block_on(rest_client.get_account_resources_bcs(account_address))
                     .unwrap()
-                    .into_inner()
-                    .into_iter()
-                    .find(|resource| {
-                        resource.resource_type.to_string() == tag.to_string()
-                    });
-                if let Some(resource) = matched_resource {
-                    println!("load resource {}::{}", address.to_string(), tag.to_string());
-                    return Ok(resource.data.as_str().map_or(None, |str| Option::from(str.as_bytes().to_vec())));
+                    .into_inner();
+                    // .into_iter()
+                    // .find(|resource| {
+                    //     resource.resource_type.to_string() == tag.to_string()
+                    // });
+                    // .get(&AptosStructTag::from_str(tag.to_string().as_str()).unwrap());
+                // let storage = InMemoryLazyStorage::new();
+                // let layout = TypeLayoutBuilder::build_runtime(&TypeTag::Struct(Box::from(tag.clone())), &storage)
+                //     .map_err(|_| anyhow!("Failed to resolve type: {:?}", access_path.root.type_))?;
+                if let Some(resource) = matched_resource.get(&AptosStructTag::from_str(tag.to_string().as_str()).unwrap()) {
+                    println!("load resource from address{} to get {}", address.to_string(), tag.to_string());
+                    return Ok(Option::from(resource.clone()));
                 }
                 return Ok(None)
             },
@@ -108,6 +118,25 @@ impl ResourceResolver for InMemoryLazyStorage {
         Ok(None)
     }
 }
+
+// impl MoveResolver for InMemoryLazyStorage {
+//     type Err = ();
+// }
+//
+// impl GetModule for &InMemoryLazyStorage {
+//     type Error = anyhow::Error;
+//     type Item = CompiledModule;
+//
+//     fn get_module_by_id(&self, id: &ModuleId) -> Result<Option<CompiledModule>, Self::Error> {
+//         if let Some(bytes) = self.get_module_bytes(id)? {
+//             let module = CompiledModule::deserialize(&bytes)
+//                 .map_err(|e| anyhow!("Failure deserializing module {:?}: {:?}", id, e))?;
+//             Ok(Some(module))
+//         } else {
+//             Ok(None)
+//         }
+//     }
+// }
 
 #[cfg(feature = "table-extension")]
 impl TableResolver for InMemoryLazyStorage {
