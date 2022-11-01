@@ -19,3 +19,4 @@ move-core-types = { git = "https://github.com/move-language/move", rev = "64a03b
 move-bytecode-utils = { git = "https://github.com/move-language/move", rev = "64a03b1d5bdc3751b95d89c675e63f1ca205e753" }
 hex = "0.4.3"
 tokio = "1.21.2"
+rocket = { version = "0.5.0-rc.2", features = ["json"] }

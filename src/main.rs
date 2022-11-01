@@ -1,3 +1,5 @@
+#[macro_use] extern crate rocket;
+mod requests;
 mod storage;
 
 use std::io::Read;
@@ -18,9 +20,9 @@ use move_vm_types::values::Value;
 
 const STD_ADDR: AccountAddress = AccountAddress::ONE;
 
-fn main() {
-    exec_func();
-}
+// fn main() {
+//     exec_func();
+// }
 
 pub fn get_gas_status(cost_table: &CostTable, gas_budget: Option<u64>) -> Result<GasStatus> {
     let gas_status = if let Some(gas_budget) = gas_budget {
@@ -87,3 +89,8 @@ fn exec_func() {
 }
 
 fn view_resource() {}
+
+#[launch]
+fn rocket() -> _ {
+    rocket::build().attach(requests::stage())
+}
