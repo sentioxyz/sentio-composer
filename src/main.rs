@@ -1,30 +1,31 @@
-#[macro_use] extern crate rocket;
-mod requests;
 mod storage;
-
+use crate::storage::InMemoryLazyStorage;
 use std::io::Read;
 use anyhow::{bail, Result};
 
 use aptos_sdk::move_types::account_address::AccountAddress as AptosAccountAddress;
+use aptos_sdk::rest_client::aptos_api_types::IdentifierWrapper;
 use move_core_types::language_storage::{ModuleId, TypeTag};
 use move_vm_runtime::move_vm::MoveVM;
 use move_stdlib;
 use move_vm_test_utils::gas_schedule::{CostTable, Gas, GasStatus};
 use move_core_types::account_address::{AccountAddress, AccountAddressParseError};
 use move_core_types::identifier::{Identifier, IdentStr};
-use crate::storage::InMemoryLazyStorage;
 use hex;
 use move_binary_format::errors::VMResult;
 use move_core_types::value::MoveValue;
+use move_core_types::resolver::MoveResolver;
+use move_vm_runtime::session::Session;
 use move_vm_types::values::Value;
-
+use poem::{listener::TcpListener, Route, Server};
+use poem_openapi::{payload::PlainText, OpenApi, OpenApiService, ApiRequest};
+use poem_openapi::param::Query;
+use poem_openapi::payload::Json;
+use serde::{Deserialize, Serialize};
+use poem_openapi::Object;
 const STD_ADDR: AccountAddress = AccountAddress::ONE;
 
-// fn main() {
-//     exec_func();
-// }
-
-pub fn get_gas_status(cost_table: &CostTable, gas_budget: Option<u64>) -> Result<GasStatus> {
+fn get_gas_status(cost_table: &CostTable, gas_budget: Option<u64>) -> Result<GasStatus> {
     let gas_status = if let Some(gas_budget) = gas_budget {
         // TODO(Gas): This should not be hardcoded.
         let max_gas_budget = u64::MAX.checked_div(1000).unwrap();
@@ -39,7 +40,7 @@ pub fn get_gas_status(cost_table: &CostTable, gas_budget: Option<u64>) -> Result
     Ok(gas_status)
 }
 
-fn exec_func() {
+pub fn exec_func() {
     let vm = MoveVM::new(move_stdlib::natives::all_natives(
         STD_ADDR,
         // TODO: come up with a suitable gas schedule
@@ -88,9 +89,46 @@ fn exec_func() {
     }
 }
 
-fn view_resource() {}
+/// A request to submit a transaction
+///
+/// This requires a transaction and a signature of it
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Object)]
+pub struct CallFunctionRequest {
+    pub func: IdentifierWrapper,
+    pub type_params: IdentifierWrapper,
+    pub params: IdentifierWrapper,
+}
 
-#[launch]
-fn rocket() -> _ {
-    rocket::build().attach(requests::stage())
+struct Api;
+
+#[OpenApi]
+impl Api {
+    #[oai(path = "/hello", method = "get")]
+    async fn index(&self, name: Query<Option<String>>) -> PlainText<String> {
+        match name.0 {
+            Some(name) => PlainText(format!("hello, {}!", name)),
+            None => PlainText("hello!".to_string()),
+        }
+    }
+
+    #[oai(path = "/call_function", method = "post")]
+    async fn call_function(&self, data: Json<CallFunctionRequest>) -> PlainText<String> {
+        PlainText(data.func.to_string())
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), std::io::Error> {
+    if std::env::var_os("RUST_LOG").is_none() {
+        std::env::set_var("RUST_LOG", "poem=debug");
+    }
+    tracing_subscriber::fmt::init();
+
+    let api_service =
+        OpenApiService::new(Api, "Hello World", "1.0").server("http://localhost:3000/api");
+    let ui = api_service.swagger_ui();
+
+    Server::new(TcpListener::bind("127.0.0.1:3000"))
+        .run(Route::new().nest("/api", api_service).nest("/", ui))
+        .await
 }
