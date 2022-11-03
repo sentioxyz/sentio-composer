@@ -1,24 +1,19 @@
 use aptos_sdk::move_types::account_address::AccountAddress as AptosAccountAddress;
 use aptos_sdk::move_types::language_storage::StructTag as AptosStructTag;
 
-use move_core_types::resolver::{ModuleResolver, MoveResolver, ResourceResolver};
+use move_core_types::resolver::{ModuleResolver, ResourceResolver};
 use move_core_types::account_address::AccountAddress;
-use std::{
-    collections::{btree_map, BTreeMap},
-    fmt::Debug,
-};
+use std::{collections::{btree_map, BTreeMap}, fmt::Debug};
 use std::str::FromStr;
-use anyhow::anyhow;
+use anyhow::{bail, Result};
 use move_core_types::identifier::Identifier;
-use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
+use move_core_types::language_storage::{ModuleId, StructTag};
 use aptos_sdk::rest_client::{Client, MoveModuleBytecode};
+use aptos_sdk::rest_client::error::RestError;
 use url::Url;
 use once_cell::sync::Lazy;
-use move_binary_format::CompiledModule;
-use move_bytecode_utils::layout::TypeLayoutBuilder;
-use move_bytecode_utils::module_cache::{GetModule, ModuleCache};
-use tokio::runtime::Runtime;
-use move_vm_types::values::Value;
+use move_core_types::effects::{AccountChangeSet, ChangeSet, Op};
+use tokio::runtime::{Handle, Runtime};
 
 /// Simple in-memory storage for modules and resources under an account.
 #[derive(Debug, Clone)]
@@ -27,15 +22,93 @@ struct InMemoryAccountStorage {
     modules: BTreeMap<Identifier, Vec<u8>>,
 }
 
+fn apply_changes<K, V>(
+    map: &mut BTreeMap<K, V>,
+    changes: impl IntoIterator<Item = (K, Op<V>)>,
+) -> Result<()>
+    where
+        K: Ord + Debug,
+{
+    use btree_map::Entry::*;
+    use Op::*;
+
+    for (k, op) in changes.into_iter() {
+        match (map.entry(k), op) {
+            (Occupied(entry), New(_)) => {
+                bail!(
+                    "Failed to apply changes -- key {:?} already exists",
+                    entry.key()
+                )
+            }
+            (Occupied(entry), Delete) => {
+                entry.remove();
+            }
+            (Occupied(entry), Modify(val)) => {
+                *entry.into_mut() = val;
+            }
+            (Vacant(entry), New(val)) => {
+                entry.insert(val);
+            }
+            (Vacant(entry), Delete | Modify(_)) => bail!(
+                "Failed to apply changes -- key {:?} does not exist",
+                entry.key()
+            ),
+        }
+    }
+    Ok(())
+}
+
+impl InMemoryAccountStorage {
+    fn apply(&mut self, account_changeset: AccountChangeSet) -> Result<()> {
+        let (modules, resources) = account_changeset.into_inner();
+        apply_changes(&mut self.modules, modules)?;
+        apply_changes(&mut self.resources, resources)?;
+        Ok(())
+    }
+
+    fn new() -> Self {
+        Self {
+            modules: BTreeMap::new(),
+            resources: BTreeMap::new(),
+        }
+    }
+}
+
 /// Simple in-memory lazy storage that can be used as a Move VM storage backend for testing purposes. It restores resources from the Aptos chain
 #[derive(Debug, Clone)]
 pub struct InMemoryLazyStorage {
     accounts: BTreeMap<AccountAddress, InMemoryAccountStorage>,
-    #[cfg(feature = "table-extension")]
-    tables: BTreeMap<TableHandle, BTreeMap<Vec<u8>, Vec<u8>>>,
 }
 
-static NODE_URL: Lazy<Url> = Lazy::new(|| {
+impl InMemoryLazyStorage {
+    pub fn apply_extended(
+        &mut self,
+        changeset: ChangeSet,
+    ) -> Result<()> {
+        for (addr, account_changeset) in changeset.into_inner() {
+            match self.accounts.entry(addr) {
+                btree_map::Entry::Occupied(entry) => {
+                    entry.into_mut().apply(account_changeset)?;
+                }
+                btree_map::Entry::Vacant(entry) => {
+                    let mut account_storage = InMemoryAccountStorage::new();
+                    account_storage.apply(account_changeset)?;
+                    entry.insert(account_storage);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn new() -> Self {
+        Self {
+            accounts: BTreeMap::new(),
+        }
+    }
+}
+
+pub static NODE_URL: Lazy<Url> = Lazy::new(|| {
     Url::from_str(
         std::env::var("APTOS_NODE_URL")
             .as_ref()
@@ -50,14 +123,19 @@ impl ModuleResolver for InMemoryLazyStorage {
 
     fn get_module(&self, module_id: &ModuleId) -> Result<Option<Vec<u8>>, Self::Error> {
         if let Some(account_storage) = self.accounts.get(module_id.address()) {
-            return Ok(account_storage.modules.get(module_id.name()).cloned());
+            let cached_module =  account_storage.modules.get(module_id.name()).cloned();
+            match cached_module {
+                None => {}
+                Some(m) => {
+                    return Ok(Some(m));
+                }
+            }
         }
         // Get account's modules from the chain
         let rest_client = Client::new(NODE_URL.clone());
         let aptos_account = AptosAccountAddress::from_bytes(module_id.address().into_bytes());
         match aptos_account {
             Ok(account_address) => {
-                // Runtime::new().unwrap().block_on(rest_client.get_account_modules(account_address))
                 let matched_module = Runtime::new().unwrap().block_on(rest_client.get_account_modules(account_address))
                     .unwrap()
                     .into_inner()
@@ -71,6 +149,9 @@ impl ModuleResolver for InMemoryLazyStorage {
                     });
                 if let Some(module) = matched_module {
                     println!("load {}::{}", module_id.address(), module_id.name().as_str());
+
+                    // self.clone().accounts.insert(*module_id.address(), InMemoryAccountStorage::new());
+
                     return Ok(Option::from(module.bytecode.0));
                 }
             },
@@ -89,7 +170,13 @@ impl ResourceResolver for InMemoryLazyStorage {
         tag: &StructTag,
     ) -> Result<Option<Vec<u8>>, Self::Error> {
         if let Some(account_storage) = self.accounts.get(address) {
-            return Ok(account_storage.resources.get(tag).cloned());
+            let cached_resource = account_storage.resources.get(tag).cloned();
+            match cached_resource {
+                None => {}
+                Some(r) => {
+                    return Ok(Some(r));
+                }
+            }
         }
         // Get account's resources from the chain
         let rest_client = Client::new(NODE_URL.clone());
@@ -117,119 +204,4 @@ impl ResourceResolver for InMemoryLazyStorage {
         }
         Ok(None)
     }
-}
-
-// impl MoveResolver for InMemoryLazyStorage {
-//     type Err = ();
-// }
-//
-// impl GetModule for &InMemoryLazyStorage {
-//     type Error = anyhow::Error;
-//     type Item = CompiledModule;
-//
-//     fn get_module_by_id(&self, id: &ModuleId) -> Result<Option<CompiledModule>, Self::Error> {
-//         if let Some(bytes) = self.get_module_bytes(id)? {
-//             let module = CompiledModule::deserialize(&bytes)
-//                 .map_err(|e| anyhow!("Failure deserializing module {:?}: {:?}", id, e))?;
-//             Ok(Some(module))
-//         } else {
-//             Ok(None)
-//         }
-//     }
-// }
-
-#[cfg(feature = "table-extension")]
-impl TableResolver for InMemoryLazyStorage {
-    fn resolve_table_entry(
-        &self,
-        handle: &TableHandle,
-        key: &[u8],
-    ) -> std::result::Result<Option<Vec<u8>>, Error> {
-        Ok(self.tables.get(handle).and_then(|t| t.get(key).cloned()))
-    }
-}
-
-
-impl InMemoryLazyStorage {
-    // pub fn apply_extended(
-    //     &mut self,
-    //     changeset: ChangeSet,
-    //     #[cfg(feature = "table-extension")] table_changes: TableChangeSet,
-    // ) -> Result<()> {
-    //     for (addr, account_changeset) in changeset.into_inner() {
-    //         match self.accounts.entry(addr) {
-    //             btree_map::Entry::Occupied(entry) => {
-    //                 entry.into_mut().apply(account_changeset)?;
-    //             }
-    //             btree_map::Entry::Vacant(entry) => {
-    //                 let mut account_storage = InMemoryAccountStorage::new();
-    //                 account_storage.apply(account_changeset)?;
-    //                 entry.insert(account_storage);
-    //             }
-    //         }
-    //     }
-    //
-    //     #[cfg(feature = "table-extension")]
-    //     self.apply_table(table_changes)?;
-    //
-    //     Ok(())
-    // }
-    //
-    // pub fn apply(&mut self, changeset: ChangeSet) -> Result<()> {
-    //     self.apply_extended(
-    //         changeset,
-    //         #[cfg(feature = "table-extension")]
-    //             TableChangeSet::default(),
-    //     )
-    // }
-    //
-    // #[cfg(feature = "table-extension")]
-    // fn apply_table(&mut self, changes: TableChangeSet) -> Result<()> {
-    //     let TableChangeSet {
-    //         new_tables,
-    //         removed_tables,
-    //         changes,
-    //     } = changes;
-    //     self.tables.retain(|h, _| !removed_tables.contains(h));
-    //     self.tables.extend(
-    //         new_tables
-    //             .keys()
-    //             .into_iter()
-    //             .map(|h| (*h, BTreeMap::default())),
-    //     );
-    //     for (h, c) in changes {
-    //         assert!(
-    //             self.tables.contains_key(&h),
-    //             "inconsistent table change set: stale table handle"
-    //         );
-    //         let table = self.tables.get_mut(&h).unwrap();
-    //         apply_changes(table, c.entries)?;
-    //     }
-    //     Ok(())
-    // }
-
-    pub fn new() -> Self {
-        Self {
-            accounts: BTreeMap::new(),
-            #[cfg(feature = "table-extension")]
-            tables: BTreeMap::new(),
-        }
-    }
-
-//     pub fn publish_or_overwrite_module(&mut self, module_id: ModuleId, blob: Vec<u8>) {
-//         let account = get_or_insert(&mut self.accounts, *module_id.address(), || {
-//             InMemoryAccountStorage::new()
-//         });
-//         account.modules.insert(module_id.name().to_owned(), blob);
-//     }
-//
-//     pub fn publish_or_overwrite_resource(
-//         &mut self,
-//         addr: AccountAddress,
-//         struct_tag: StructTag,
-//         blob: Vec<u8>,
-//     ) {
-//         let account = get_or_insert(&mut self.accounts, addr, InMemoryAccountStorage::new);
-//         account.resources.insert(struct_tag, blob);
-//     }
 }

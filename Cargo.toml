@@ -23,3 +23,4 @@ poem = { version = "1.3.40", features = ["anyhow", "rustls"] }
 poem-openapi = { version = "2.0.10", features = ["url", "swagger-ui"] }
 tracing-subscriber = { version ="0.3.9", features = ["env-filter"] }
 serde = "1.0.147"
+clap = { version = "4.0.18", features = [ "derive" ] }
