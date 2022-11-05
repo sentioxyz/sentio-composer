@@ -1,4 +1,6 @@
 mod storage;
+
+use std::process::abort;
 use crate::storage::{InMemoryLazyStorage, NODE_URL};
 use std::sync::Arc;
 use anyhow::{bail, Result};
@@ -19,20 +21,9 @@ use poem_openapi::param::Query;
 use poem_openapi::payload::Json;
 use serde::{Deserialize, Serialize};
 use poem_openapi::Object;
-use clap::Parser;
+use clap::{arg, command, value_parser, ArgAction, Command};
 
 const STD_ADDR: AccountAddress = AccountAddress::ONE;
-
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
-    #[arg(short, long)]
-    func: String,
-    #[arg(short, long)]
-    type_params: String,
-    #[arg(short, long)]
-    params: String,
-}
 
 fn get_gas_status(cost_table: &CostTable, gas_budget: Option<u64>) -> Result<GasStatus> {
     let gas_status = if let Some(gas_budget) = gas_budget {
@@ -136,10 +127,39 @@ impl Api {
 }
 
 fn main() {
-    let args = Args::parse();
-    let func: String = args.func;
-    let type_params = args.type_params;
-    let params = args.params;
+    let matches = command!() // requires `cargo` feature
+        .arg(arg!(-f --func <FUNCTION> "Function name to call, e.g. 0x1::foo::bar").required(true))
+        .arg(
+            arg!(
+                -t --type_params <TYPE_PARAMS> "Type parameters"
+            ).required(false)
+        )
+        .arg(arg!(
+            -p --params <PARAMS> "Parameters"
+        ).required(false))
+        .get_matches();
+
+    let func;
+    let type_params;
+    let params;
+    if let Some(matched_func) = matches.get_one::<String>("func") {
+        println!("Value for func: {}", matched_func);
+        func = matched_func.clone();
+    } else {
+        return;
+    }
+    if let Some(matched_tp) = matches.get_one::<String>("type_params") {
+        println!("Value for type parameters: {}", matched_tp);
+        type_params = matched_tp.clone();
+    } else {
+        type_params = "".parse().unwrap();
+    }
+    if let Some(matched_params) = matches.get_one::<String>("params") {
+        println!("Value for params: {}", matched_params);
+        params = matched_params.clone();
+    } else {
+        params = "".parse().unwrap();
+    }
     example(func, type_params, params)
 }
 

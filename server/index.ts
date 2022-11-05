@@ -16,13 +16,29 @@ interface CallFunctionBody {
   params: string,
 }
 
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+
 app.post('/call_function', (req, res) => {
   let body = req.body as CallFunctionBody
-  const execution_result = execSync(`${aptos_bin} --func ${body.func} --type-params ${body.type_params} --params ${body.params}`, {encoding: 'utf-8'});
+  const execution_result = execSync(`${aptos_bin} --func ${body.func} --type_params ${body.type_params} --params ${body.params}`, {encoding: 'utf-8'});
   const lines = execution_result.split('\n')
-  res.json(lines)
-})
+  if (lines.length > 0) {
+    res.json({
+      details: lines,
+      error: false
+    })
+  } else {
+    res.json({
+      details: lines,
+      error: true
+    })
+  }
+})  
 
-app.listen(3000, () => {
-    console.log('The application is listening on port 3000!');
+app.listen(4000, () => {
+    console.log('The application is listening on port 4000!');
 })
