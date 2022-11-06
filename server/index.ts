@@ -24,7 +24,14 @@ app.use(function(req, res, next) {
 
 app.post('/call_function', (req, res) => {
   let body = req.body as CallFunctionBody
-  const execution_result = execSync(`${aptos_bin} --func ${body.func} --type_params ${body.type_params} --params ${body.params}`, {encoding: 'utf-8'});
+  let command = `${aptos_bin} --func ${body.func}`
+  if (body.type_params != null && body.type_params.length > 0) {
+    command += ` --type_params ${body.type_params}`
+  }
+  if (body.params != null && body.params.length > 0) {
+    command += ` --params ${body.params}`
+  }
+  const execution_result = execSync(command, {encoding: 'utf-8'});
   const lines = execution_result.split('\n')
   if (lines.length > 0) {
     res.json({

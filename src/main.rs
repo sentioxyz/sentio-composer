@@ -143,6 +143,7 @@ impl Api {
 }
 
 fn main() {
+    let log_path  = set_up_log();
     let matches = command!() // requires `cargo` feature
         .arg(arg!(-f --func <FUNCTION> "Function name to call, e.g. 0x1::foo::bar").required(true))
         .arg(
@@ -177,7 +178,6 @@ fn main() {
     } else {
         params = "".parse().unwrap();
     }
-    let log_path  = set_up_log();
     let mut execution_result = ExecutionResult {
         log_path,
         return_values: vec![]
@@ -196,16 +196,19 @@ fn set_up_log() -> String {
 }
 
 fn example(func: String, type_params: String, params: String, execution_res: &mut ExecutionResult) {
+    // For now, do not support type arguments
     let type_args: Vec<TypeTag> = vec![];
     // let signer_account = AccountAddress::from_hex_literal("0x4f31605c22d20bab0488985bda5f310df7b9eca1432e062968b52c1f1a9a92c6").unwrap();
-    let args: Vec<Vec<u8>> = vec![
-        // MoveValue::Address(signer_account).simple_serialize().unwrap()
-        // MoveValue::Signer(signer_account).simple_serialize().unwrap()
-        // MoveValue::U64(110).simple_serialize().unwrap(),
-        MoveValue::vector_u8("foo".as_bytes().to_vec()).simple_serialize().unwrap(),
-        // MoveValue::U64(110).simple_serialize().unwrap(),
-        // MoveValue::U64(0).simple_serialize().unwrap()
-    ];
+    // only support string parameters
+    let splitted_params = params.split(",");
+    let mut args: Vec<Vec<u8>> = Vec::new();
+    splitted_params.into_iter().for_each(|p| {
+        if p.trim().len() > 0 {
+            args.push(
+                MoveValue::vector_u8(String::from(p.trim()).into_bytes()).simple_serialize().unwrap(),
+            )
+        }
+    });
     // func: 0x54ad3d30af77b60d939ae356e6606de9a4da67583f02b962d2d3f2e481484e90::packet::hash_sha3_packet_bytes
     let mut splitted_func = func.split("::");
     let account = AccountAddress::from_hex_literal(splitted_func.next().unwrap());
