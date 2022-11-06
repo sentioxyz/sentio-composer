@@ -9,17 +9,18 @@ use anyhow::{bail, Result};
 use move_core_types::identifier::Identifier;
 use move_core_types::language_storage::{ModuleId, StructTag};
 use aptos_sdk::rest_client::{Client, MoveModuleBytecode};
-use aptos_sdk::rest_client::error::RestError;
+use log::{error, info};
 use url::Url;
 use once_cell::sync::Lazy;
 use move_core_types::effects::{AccountChangeSet, ChangeSet, Op};
-use tokio::runtime::{Handle, Runtime};
+use tokio::runtime::Runtime;
+use cacache;
 
 /// Simple in-memory storage for modules and resources under an account.
 #[derive(Debug, Clone)]
 struct InMemoryAccountStorage {
     resources: BTreeMap<StructTag, Vec<u8>>,
-    modules: BTreeMap<Identifier, Vec<u8>>,
+    modules: BTreeMap<Identifier, Vec<u8>>
 }
 
 fn apply_changes<K, V>(
@@ -69,15 +70,15 @@ impl InMemoryAccountStorage {
     fn new() -> Self {
         Self {
             modules: BTreeMap::new(),
-            resources: BTreeMap::new(),
+            resources: BTreeMap::new()
         }
     }
 }
 
 /// Simple in-memory lazy storage that can be used as a Move VM storage backend for testing purposes. It restores resources from the Aptos chain
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct InMemoryLazyStorage {
-    accounts: BTreeMap<AccountAddress, InMemoryAccountStorage>,
+    accounts: BTreeMap<AccountAddress, InMemoryAccountStorage>
 }
 
 impl InMemoryLazyStorage {
@@ -103,7 +104,7 @@ impl InMemoryLazyStorage {
 
     pub fn new() -> Self {
         Self {
-            accounts: BTreeMap::new(),
+            accounts: BTreeMap::new()
         }
     }
 }
@@ -122,6 +123,7 @@ impl ModuleResolver for InMemoryLazyStorage {
     type Error = ();
 
     fn get_module(&self, module_id: &ModuleId) -> Result<Option<Vec<u8>>, Self::Error> {
+        // We should never hit this as there's no in-memory cache
         if let Some(account_storage) = self.accounts.get(module_id.address()) {
             let cached_module =  account_storage.modules.get(module_id.name()).cloned();
             match cached_module {
@@ -131,6 +133,21 @@ impl ModuleResolver for InMemoryLazyStorage {
                 }
             }
         }
+        // Get modules from the local cache
+        let mut module_cache_key = module_id.address().to_string().to_owned();
+        let module_name = module_id.name().as_str();
+        module_cache_key.push_str(module_name);
+        let cached_module = cacache::read_sync("./modules-cache", module_cache_key.clone());
+        match cached_module {
+            Ok(m) => {
+                info!("loaded module from cache: {}::{}", module_id.address(), module_id.name().as_str());
+                return Ok(Some(m));
+            }
+            Err(e) => {
+                error!("{}", e);
+            }
+        }
+
         // Get account's modules from the chain
         let rest_client = Client::new(NODE_URL.clone());
         let aptos_account = AptosAccountAddress::from_bytes(module_id.address().into_bytes());
@@ -148,11 +165,10 @@ impl ModuleResolver for InMemoryLazyStorage {
                         false
                     });
                 if let Some(module) = matched_module {
-                    println!("load {}::{}", module_id.address(), module_id.name().as_str());
-
-                    // self.clone().accounts.insert(*module_id.address(), InMemoryAccountStorage::new());
-
-                    return Ok(Option::from(module.bytecode.0));
+                    info!("load module: {}::{}", module_id.address(), module_id.name().as_str());
+                    // caching the module
+                    cacache::write_sync("./modules-cache", module_cache_key.clone(), module.bytecode.0.clone()).expect("Failed to cache the module");
+                    return Ok(Option::from(module.bytecode.0.clone()));
                 }
             },
             Err(err) => print!("{}", err),
@@ -186,16 +202,8 @@ impl ResourceResolver for InMemoryLazyStorage {
                 let matched_resource = Runtime::new().unwrap().block_on(rest_client.get_account_resources_bcs(account_address))
                     .unwrap()
                     .into_inner();
-                    // .into_iter()
-                    // .find(|resource| {
-                    //     resource.resource_type.to_string() == tag.to_string()
-                    // });
-                    // .get(&AptosStructTag::from_str(tag.to_string().as_str()).unwrap());
-                // let storage = InMemoryLazyStorage::new();
-                // let layout = TypeLayoutBuilder::build_runtime(&TypeTag::Struct(Box::from(tag.clone())), &storage)
-                //     .map_err(|_| anyhow!("Failed to resolve type: {:?}", access_path.root.type_))?;
                 if let Some(resource) = matched_resource.get(&AptosStructTag::from_str(tag.to_string().as_str()).unwrap()) {
-                    println!("load resource from address{} to get {}", address.to_string(), tag.to_string());
+                    info!("load resource from address{} to get {}", address.to_string(), tag.to_string());
                     return Ok(Option::from(resource.clone()));
                 }
                 return Ok(None)

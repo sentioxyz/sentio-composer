@@ -1,29 +1,46 @@
 mod storage;
+mod helper;
+extern crate log;
+extern crate simplelog;
 
-use std::process::abort;
-use crate::storage::{InMemoryLazyStorage, NODE_URL};
+use std::borrow::Borrow;
+use std::fs;
+use simplelog::*;
+
+use std::fs::File;
+use tempfile::tempdir;
+use std::path::Path;
+use crate::storage::InMemoryLazyStorage;
 use std::sync::Arc;
 use anyhow::{bail, Result};
 
 use aptos_sdk::rest_client::aptos_api_types::IdentifierWrapper;
-use aptos_sdk::rest_client::Client;
 use move_core_types::language_storage::{ModuleId, TypeTag};
 use move_vm_runtime::move_vm::MoveVM;
 use move_stdlib;
 use move_vm_test_utils::gas_schedule::{CostTable, Gas, GasStatus};
 use move_core_types::account_address::{AccountAddress};
 use move_core_types::identifier::{Identifier, IdentStr};
-use move_core_types::value::MoveValue;
+use move_core_types::value::{MoveTypeLayout, MoveValue};
 use move_vm_types::values::Value;
-use poem::{listener::TcpListener, Route, Server};
-use poem_openapi::{payload::PlainText, OpenApi, OpenApiService};
+use poem_openapi::{payload::PlainText, OpenApi};
 use poem_openapi::param::Query;
 use poem_openapi::payload::Json;
 use serde::{Deserialize, Serialize};
 use poem_openapi::Object;
-use clap::{arg, command, value_parser, ArgAction, Command};
+use clap::{arg, command};
+use log::{error, info, LevelFilter};
+use simplelog::WriteLogger;
+use poem_openapi::__private::serde_json;
+use crate::helper::absolute_path;
 
 const STD_ADDR: AccountAddress = AccountAddress::ONE;
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ExecutionResult {
+    log_path: String,
+    return_values: Vec<(Vec<u8>, MoveTypeLayout)>
+}
 
 fn get_gas_status(cost_table: &CostTable, gas_budget: Option<u64>) -> Result<GasStatus> {
     let gas_status = if let Some(gas_budget) = gas_budget {
@@ -40,7 +57,7 @@ fn get_gas_status(cost_table: &CostTable, gas_budget: Option<u64>) -> Result<Gas
     Ok(gas_status)
 }
 
-pub fn exec_func(storage: InMemoryLazyStorage, module: ModuleId, function: &IdentStr, type_args: Vec<TypeTag>, args: Vec<Vec<u8>>) {
+pub fn exec_func(storage: InMemoryLazyStorage, module: ModuleId, function: &IdentStr, type_args: Vec<TypeTag>, args: Vec<Vec<u8>>) -> Option<Vec<(Vec<u8>, MoveTypeLayout)>> {
     let vm = MoveVM::new(move_stdlib::natives::all_natives(
         STD_ADDR,
         // TODO: come up with a suitable gas schedule
@@ -57,15 +74,14 @@ pub fn exec_func(storage: InMemoryLazyStorage, module: ModuleId, function: &Iden
     let res = session.execute_function_bypass_visibility(&module, function, type_args, args, &mut gas_status);
     match res {
         Ok(success_result) => {
-            println!("length: {}", success_result.return_values.len());
-            let val = success_result.return_values.get(0).unwrap().clone();
-            let deser_val = Value::simple_deserialize(&val.0.to_vec(), &val.1);
-            println!("deserialized val {}", deser_val.unwrap().to_string());
+            info!("result length: {}", success_result.return_values.len());
+            return Some(success_result.return_values);
         }
         Err(err) => {
-            println!("Error! {}", err.to_string())
+            error!("Error! {}", err.to_string())
         }
     }
+    return None
 }
 
 /// A request to submit a transaction
@@ -143,27 +159,43 @@ fn main() {
     let type_params;
     let params;
     if let Some(matched_func) = matches.get_one::<String>("func") {
-        println!("Value for func: {}", matched_func);
+        info!("Value for func: {}", matched_func);
+        // TODO(pc): check if the function name is legal
         func = matched_func.clone();
     } else {
         return;
     }
     if let Some(matched_tp) = matches.get_one::<String>("type_params") {
-        println!("Value for type parameters: {}", matched_tp);
+        info!("Value for type parameters: {}", matched_tp);
         type_params = matched_tp.clone();
     } else {
         type_params = "".parse().unwrap();
     }
     if let Some(matched_params) = matches.get_one::<String>("params") {
-        println!("Value for params: {}", matched_params);
+        info!("Value for params: {}", matched_params);
         params = matched_params.clone();
     } else {
         params = "".parse().unwrap();
     }
-    example(func, type_params, params)
+    let log_path  = set_up_log();
+    let mut execution_result = ExecutionResult {
+        log_path,
+        return_values: vec![]
+    };
+    example(func, type_params, params, &mut execution_result);
+    println!("{}", serde_json::to_string(&execution_result).unwrap())
 }
 
-fn example(func: String, type_params: String, params: String) {
+fn set_up_log() -> String {
+    let dir = tempdir().unwrap().path().file_name().unwrap().to_owned();
+    fs::create_dir_all(dir.clone()).unwrap();
+    let file = Path::new(&dir).join("aptos_tool_bin.log");
+    let file_path = absolute_path(file).unwrap().into_os_string().into_string().unwrap();
+    WriteLogger::init(LevelFilter::Info, Config::default(), File::create(file_path.clone()).unwrap()).unwrap();
+    file_path
+}
+
+fn example(func: String, type_params: String, params: String, execution_res: &mut ExecutionResult) {
     let type_args: Vec<TypeTag> = vec![];
     // let signer_account = AccountAddress::from_hex_literal("0x4f31605c22d20bab0488985bda5f310df7b9eca1432e062968b52c1f1a9a92c6").unwrap();
     let args: Vec<Vec<u8>> = vec![
@@ -182,30 +214,18 @@ fn example(func: String, type_params: String, params: String) {
         Ok(addr) => {
             module = ModuleId::new(addr, Identifier::new(splitted_func.next().unwrap()).unwrap());
             let storage = InMemoryLazyStorage::new();
-            exec_func(storage, module, IdentStr::new(splitted_func.next().unwrap()).unwrap(), type_args, args);
+            let res = exec_func(storage, module, IdentStr::new(splitted_func.next().unwrap()).unwrap(), type_args, args);
+            match res {
+                None => {
+                    println!()
+                }
+                Some(vals) => {
+                    execution_res.return_values = vals
+                }
+            }
         }
         Err(err) => {
             println!("error: {}", err);
         }
     }
 }
-
-// #[tokio::main]
-// async fn main() -> Result<(), std::io::Error> {
-//     if std::env::var_os("RUST_LOG").is_none() {
-//         std::env::set_var("RUST_LOG", "poem=debug");
-//     }
-//     tracing_subscriber::fmt::init();
-//     let api = Api {
-//         context: Arc::new(Context {
-//             storage: InMemoryLazyStorage::new()
-//         })
-//     };
-//     let api_service =
-//         OpenApiService::new(api, "Hello World", "1.0").server("http://localhost:3000/api");
-//     let ui = api_service.swagger_ui();
-//
-//     Server::new(TcpListener::bind("127.0.0.1:3000"))
-//         .run(Route::new().nest("/api", api_service).nest("/", ui))
-//         .await
-// }
