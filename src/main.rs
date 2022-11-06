@@ -143,7 +143,7 @@ impl Api {
 }
 
 fn main() {
-    let log_path  = set_up_log();
+    let log_path = set_up_log();
     let matches = command!() // requires `cargo` feature
         .arg(arg!(-f --func <FUNCTION> "Function name to call, e.g. 0x1::foo::bar").required(true))
         .arg(
@@ -154,11 +154,15 @@ fn main() {
         .arg(arg!(
             -p --params <PARAMS> "Parameters"
         ).required(false))
+        .arg(arg!(
+            -l --ledger_version <LEDGER_VERSION> "Ledger version"
+        ).required(false))
         .get_matches();
 
     let func;
     let type_params;
     let params;
+    let ledger_version: u64;
     if let Some(matched_func) = matches.get_one::<String>("func") {
         info!("Value for func: {}", matched_func);
         // TODO(pc): check if the function name is legal
@@ -178,11 +182,17 @@ fn main() {
     } else {
         params = "".parse().unwrap();
     }
+    if let Some(matched_ledger_version) = matches.get_one::<u64>("ledger_version") {
+        info!("Value for ledger version: {}", matched_ledger_version);
+        ledger_version = matched_ledger_version.clone();
+    } else {
+        ledger_version = 0;
+    }
     let mut execution_result = ExecutionResult {
         log_path,
         return_values: vec![]
     };
-    example(func, type_params, params, &mut execution_result);
+    example(func, type_params, params, ledger_version, &mut execution_result);
     println!("{}", serde_json::to_string(&execution_result).unwrap())
 }
 
@@ -195,7 +205,7 @@ fn set_up_log() -> String {
     file_path
 }
 
-fn example(func: String, type_params: String, params: String, execution_res: &mut ExecutionResult) {
+fn example(func: String, type_params: String, params: String, ledger_version: u64, execution_res: &mut ExecutionResult) {
     // For now, do not support type arguments
     let type_args: Vec<TypeTag> = vec![];
     // let signer_account = AccountAddress::from_hex_literal("0x4f31605c22d20bab0488985bda5f310df7b9eca1432e062968b52c1f1a9a92c6").unwrap();
@@ -216,7 +226,7 @@ fn example(func: String, type_params: String, params: String, execution_res: &mu
     match account {
         Ok(addr) => {
             module = ModuleId::new(addr, Identifier::new(splitted_func.next().unwrap()).unwrap());
-            let storage = InMemoryLazyStorage::new();
+            let storage = InMemoryLazyStorage::new(ledger_version);
             let res = exec_func(storage, module, IdentStr::new(splitted_func.next().unwrap()).unwrap(), type_args, args);
             match res {
                 None => {

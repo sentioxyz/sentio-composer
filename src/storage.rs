@@ -78,7 +78,8 @@ impl InMemoryAccountStorage {
 /// Simple in-memory lazy storage that can be used as a Move VM storage backend for testing purposes. It restores resources from the Aptos chain
 #[derive(Clone)]
 pub struct InMemoryLazyStorage {
-    accounts: BTreeMap<AccountAddress, InMemoryAccountStorage>
+    accounts: BTreeMap<AccountAddress, InMemoryAccountStorage>,
+    ledger_version: u64
 }
 
 impl InMemoryLazyStorage {
@@ -102,9 +103,10 @@ impl InMemoryLazyStorage {
         Ok(())
     }
 
-    pub fn new() -> Self {
+    pub fn new(ledger_version: u64) -> Self {
         Self {
-            accounts: BTreeMap::new()
+            accounts: BTreeMap::new(),
+            ledger_version
         }
     }
 }
@@ -137,6 +139,9 @@ impl ModuleResolver for InMemoryLazyStorage {
         let mut module_cache_key = module_id.address().to_string().to_owned();
         let module_name = module_id.name().as_str();
         module_cache_key.push_str(module_name);
+        // if self.ledger_version > 0 {
+        //     module_cache_key.push_str(self.ledger_version.to_string().as_str())
+        // }
         let cached_module = cacache::read_sync("./modules-cache", module_cache_key.clone());
         match cached_module {
             Ok(m) => {
@@ -199,9 +204,16 @@ impl ResourceResolver for InMemoryLazyStorage {
         let aptos_account = AptosAccountAddress::from_bytes(address.into_bytes());
         match aptos_account {
             Ok(account_address) => {
-                let matched_resource = Runtime::new().unwrap().block_on(rest_client.get_account_resources_bcs(account_address))
-                    .unwrap()
-                    .into_inner();
+                let matched_resource;
+                if self.ledger_version > 0 {
+                    matched_resource = Runtime::new().unwrap().block_on(rest_client.get_account_resources_at_version_bcs(account_address, self.ledger_version))
+                        .unwrap()
+                        .into_inner();
+                } else {
+                    matched_resource = Runtime::new().unwrap().block_on(rest_client.get_account_resources_bcs(account_address))
+                        .unwrap()
+                        .into_inner();
+                }
                 if let Some(resource) = matched_resource.get(&AptosStructTag::from_str(tag.to_string().as_str()).unwrap()) {
                     info!("load resource from address{} to get {}", address.to_string(), tag.to_string());
                     return Ok(Option::from(resource.clone()));

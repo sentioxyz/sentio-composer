@@ -14,6 +14,7 @@ interface CallFunctionBody {
   func: string,
   type_params: string,
   params: string,
+  ledger_version: number,
 }
 
 app.use(function(req, res, next) {
@@ -30,6 +31,9 @@ app.post('/call_function', (req, res) => {
   }
   if (body.params != null && body.params.length > 0) {
     command += ` --params ${body.params}`
+  }
+  if (body.ledger_version != null) {
+    command += ` --ledger_version ${body.ledger_version}`
   }
   const execution_result = execSync(command, {encoding: 'utf-8'});
   const lines = execution_result.split('\n')
