@@ -2,6 +2,7 @@ mod storage;
 mod helper;
 extern crate log;
 extern crate simplelog;
+extern crate core;
 
 use std::borrow::Borrow;
 use std::fs;
@@ -239,6 +240,33 @@ fn example(func: String, type_params: String, params: String, ledger_version: u6
         }
         Err(err) => {
             println!("error: {}", err);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use move_core_types::account_address::AccountAddress;
+    use move_core_types::identifier::{Identifier, IdentStr};
+    use move_core_types::language_storage::{ModuleId, TypeTag};
+    use move_core_types::value::{MoveTypeLayout, MoveValue};
+    use crate::{exec_func, InMemoryLazyStorage};
+
+    #[test]
+    fn test_call_aptos_function() {
+        let storage = InMemoryLazyStorage::new(0);
+        let addr = AccountAddress::from_hex_literal("0x54ad3d30af77b60d939ae356e6606de9a4da67583f02b962d2d3f2e481484e90").unwrap();
+        let module = ModuleId::new(addr, Identifier::new("packet").unwrap());
+        let func = IdentStr::new("hash_sha3_packet_bytes").unwrap();
+        let type_args: Vec<TypeTag> = vec![];
+        let mut args: Vec<Vec<u8>> = Vec::new();
+        args.push(MoveValue::vector_u8("bar".as_bytes().to_vec()).simple_serialize().unwrap());
+        let res = exec_func(storage, module, func, type_args, args);
+        match res {
+            None => {}
+            Some(val) => {
+                assert_eq!(val.len(), 1);
+            }
         }
     }
 }
