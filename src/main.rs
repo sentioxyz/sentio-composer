@@ -16,7 +16,7 @@ use std::sync::Arc;
 use anyhow::{bail, Result};
 
 use aptos_sdk::rest_client::aptos_api_types::IdentifierWrapper;
-use move_core_types::language_storage::{ModuleId, TypeTag};
+use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
 use move_vm_runtime::move_vm::MoveVM;
 use move_stdlib;
 use move_vm_test_utils::gas_schedule::{CostTable, Gas, GasStatus};
@@ -157,6 +157,9 @@ fn main() {
         ).required(false))
         .arg(arg!(
             -l --ledger_version <LEDGER_VERSION> "Ledger version"
+        ).required(false).value_parser(clap::value_parser!(u64)))
+        .arg(arg!(
+            -n --network <NETWORK> "network to use"
         ).required(false))
         .get_matches();
 
@@ -164,6 +167,7 @@ fn main() {
     let type_params;
     let params;
     let ledger_version: u64;
+    let network: String;
     if let Some(matched_func) = matches.get_one::<String>("func") {
         info!("Value for func: {}", matched_func);
         // TODO(pc): check if the function name is legal
@@ -189,11 +193,17 @@ fn main() {
     } else {
         ledger_version = 0;
     }
+    if let Some(matched_network) = matches.get_one::<String>("network") {
+        info!("Value for network: {}", matched_network);
+        network = matched_network.clone();
+    } else {
+        network = "mainnet".parse().unwrap();
+    }
     let mut execution_result = ExecutionResult {
         log_path,
         return_values: vec![]
     };
-    example(func, type_params, params, ledger_version, &mut execution_result);
+    example(func, type_params, params, ledger_version, network, &mut execution_result);
     println!("{}", serde_json::to_string(&execution_result).unwrap())
 }
 
@@ -206,18 +216,47 @@ fn set_up_log() -> String {
     file_path
 }
 
-fn example(func: String, type_params: String, params: String, ledger_version: u64, execution_res: &mut ExecutionResult) {
-    // For now, do not support type arguments
-    let type_args: Vec<TypeTag> = vec![];
+fn construct_struct_type_tag_from_str(raw: &str) -> TypeTag {
+    let mut splitted = raw.split("::");
+    let address = AccountAddress::from_hex_literal(splitted.next().unwrap()).unwrap();
+    let module = Identifier::from(IdentStr::new(splitted.next().unwrap()).unwrap());
+    let name = Identifier::from(IdentStr::new(splitted.next().unwrap()).unwrap());
+    return TypeTag::Struct(
+        Box::from(StructTag {
+            address,
+            module,
+            name,
+            type_params: vec![]
+        })
+    )
+}
+
+fn example(func: String, type_params: String, params: String, ledger_version: u64, network: String, execution_res: &mut ExecutionResult) {
+    // For now, we only support struct type
+    let splitted_type_params = type_params.split(",");
+    let mut type_args: Vec<TypeTag> = vec![];
+    splitted_type_params.into_iter().for_each(|tp| {
+        if tp.contains("::") {
+            type_args.push(construct_struct_type_tag_from_str(tp));
+        } else {
+            panic!("only support struct type parameters now!");
+        }
+    });
     // let signer_account = AccountAddress::from_hex_literal("0x4f31605c22d20bab0488985bda5f310df7b9eca1432e062968b52c1f1a9a92c6").unwrap();
     // only support string parameters
     let splitted_params = params.split(",");
     let mut args: Vec<Vec<u8>> = Vec::new();
     splitted_params.into_iter().for_each(|p| {
         if p.trim().len() > 0 {
-            args.push(
-                MoveValue::vector_u8(String::from(p.trim()).into_bytes()).simple_serialize().unwrap(),
-            )
+            if p.trim().starts_with("0x") {
+                // Suppose it's an account parameter
+                args.push(MoveValue::Address(AccountAddress::from_hex_literal(p.trim()).unwrap())
+                    .simple_serialize().unwrap());
+            } else {
+                args.push(
+                    MoveValue::vector_u8(String::from(p.trim()).into_bytes()).simple_serialize().unwrap(),
+                )
+            }
         }
     });
     // func: 0x54ad3d30af77b60d939ae356e6606de9a4da67583f02b962d2d3f2e481484e90::packet::hash_sha3_packet_bytes
@@ -227,7 +266,7 @@ fn example(func: String, type_params: String, params: String, ledger_version: u6
     match account {
         Ok(addr) => {
             module = ModuleId::new(addr, Identifier::new(splitted_func.next().unwrap()).unwrap());
-            let storage = InMemoryLazyStorage::new(ledger_version);
+            let storage = InMemoryLazyStorage::new(ledger_version, network);
             let res = exec_func(storage, module, IdentStr::new(splitted_func.next().unwrap()).unwrap(), type_args, args);
             match res {
                 None => {
@@ -246,15 +285,19 @@ fn example(func: String, type_params: String, params: String, ledger_version: u6
 
 #[cfg(test)]
 mod tests {
+    use log::{LevelFilter, SetLoggerError};
     use move_core_types::account_address::AccountAddress;
     use move_core_types::identifier::{Identifier, IdentStr};
-    use move_core_types::language_storage::{ModuleId, TypeTag};
+    use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
     use move_core_types::value::{MoveTypeLayout, MoveValue};
+    use simplelog::{Config, SimpleLogger};
     use crate::{exec_func, InMemoryLazyStorage};
+
 
     #[test]
     fn test_call_aptos_function() {
-        let storage = InMemoryLazyStorage::new(0);
+        SimpleLogger::init(LevelFilter::Info, Config::default()).unwrap();
+        let storage = InMemoryLazyStorage::new(0, String::from("mainnet"));
         let addr = AccountAddress::from_hex_literal("0x54ad3d30af77b60d939ae356e6606de9a4da67583f02b962d2d3f2e481484e90").unwrap();
         let module = ModuleId::new(addr, Identifier::new("packet").unwrap());
         let func = IdentStr::new("hash_sha3_packet_bytes").unwrap();
@@ -266,6 +309,35 @@ mod tests {
             None => {}
             Some(val) => {
                 assert_eq!(val.len(), 1);
+            }
+        }
+    }
+
+    #[test]
+    fn test_call_aptos_function_vault() {
+        SimpleLogger::init(LevelFilter::Info, Config::default()).unwrap();
+        let storage = InMemoryLazyStorage::new(0, String::from("testnet"));
+        let addr = AccountAddress::from_hex_literal("0xeaa6ac31312d55907f6c9d7a66432d92d4da3aeef7ceb4e6242a8414ac67fa82").unwrap();
+        let module = ModuleId::new(addr, Identifier::new("vault").unwrap());
+        let func = IdentStr::new("account_collateral_and_debt").unwrap();
+        let type_args: Vec<TypeTag> = vec![
+            TypeTag::Struct(
+                Box::from(StructTag {
+                    address: AccountAddress::from_hex_literal("0x1").unwrap(),
+                    module: Identifier::from(IdentStr::new("aptos_coin").unwrap()),
+                    name: Identifier::from(IdentStr::new("AptosCoin").unwrap()),
+                    type_params: vec![]
+                })
+            )
+        ];
+        let mut args: Vec<Vec<u8>> = Vec::new();
+        args.push(MoveValue::Address(AccountAddress::from_hex_literal("0xf485fdf431d489c7bd0b83efa2413a6701fe4985d3e64a299a1a2e9fb46bcb82").unwrap())
+            .simple_serialize().unwrap());
+        let res = exec_func(storage, module, func, type_args, args);
+        match res {
+            None => {}
+            Some(val) => {
+                assert_eq!(val.len(), 2);
             }
         }
     }

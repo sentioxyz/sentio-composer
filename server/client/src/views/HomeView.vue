@@ -30,6 +30,25 @@
           placeholder="Enter type parameters, seperated by ','"></textarea>
       </div>
       <div class="form-group">
+        <label for="ledger_version">Ledger Version</label>
+        <textarea
+          v-model="message.ledger_version"
+          type="text"
+          class="form-control"
+          id="ledger_version"
+          placeholder="Enter the ledger version"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="network">Network</label>
+        <textarea
+          v-model="message.network"
+          type="text"
+          class="form-control"
+          style="height:100px;"
+          id="network"
+          placeholder="Enter Network"></textarea>
+      </div>
+      <div class="form-group">
         <label for="params">Parameters</label>
         <textarea
           v-model="message.params"
@@ -74,6 +93,8 @@ export default defineComponent({
       func: '',
       type_params: '',
       params: '',
+      ledger_version: 0,
+      network: '',
     },
     isShow: false,
     result: '',

@@ -79,7 +79,8 @@ impl InMemoryAccountStorage {
 #[derive(Clone)]
 pub struct InMemoryLazyStorage {
     accounts: BTreeMap<AccountAddress, InMemoryAccountStorage>,
-    ledger_version: u64
+    ledger_version: u64,
+    network: String
 }
 
 impl InMemoryLazyStorage {
@@ -103,23 +104,18 @@ impl InMemoryLazyStorage {
         Ok(())
     }
 
-    pub fn new(ledger_version: u64) -> Self {
+    pub fn new(ledger_version: u64, network: String) -> Self {
         Self {
             accounts: BTreeMap::new(),
-            ledger_version
+            ledger_version,
+            network
         }
     }
-}
 
-pub static NODE_URL: Lazy<Url> = Lazy::new(|| {
-    Url::from_str(
-        std::env::var("APTOS_NODE_URL")
-            .as_ref()
-            .map(|s| s.as_str())
-            .unwrap_or("https://fullnode.mainnet.aptoslabs.com"),
-    )
-        .unwrap()
-});
+    fn get_node_url(self) -> Url {
+        return Url::from_str(format!("https://fullnode.{}.aptoslabs.com", self.network).as_str()).unwrap()
+    }
+}
 
 impl ModuleResolver for InMemoryLazyStorage {
     type Error = ();
@@ -139,6 +135,7 @@ impl ModuleResolver for InMemoryLazyStorage {
         let mut module_cache_key = module_id.address().to_string().to_owned();
         let module_name = module_id.name().as_str();
         module_cache_key.push_str(module_name);
+        module_cache_key.push_str(self.network.as_str());
         // if self.ledger_version > 0 {
         //     module_cache_key.push_str(self.ledger_version.to_string().as_str())
         // }
@@ -154,7 +151,7 @@ impl ModuleResolver for InMemoryLazyStorage {
         }
 
         // Get account's modules from the chain
-        let rest_client = Client::new(NODE_URL.clone());
+        let rest_client = Client::new(self.clone().get_node_url());
         let aptos_account = AptosAccountAddress::from_bytes(module_id.address().into_bytes());
         match aptos_account {
             Ok(account_address) => {
@@ -200,7 +197,7 @@ impl ResourceResolver for InMemoryLazyStorage {
             }
         }
         // Get account's resources from the chain
-        let rest_client = Client::new(NODE_URL.clone());
+        let rest_client = Client::new(self.clone().get_node_url());
         let aptos_account = AptosAccountAddress::from_bytes(address.into_bytes());
         match aptos_account {
             Ok(account_address) => {

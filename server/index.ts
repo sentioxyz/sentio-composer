@@ -15,6 +15,7 @@ interface CallFunctionBody {
   type_params: string,
   params: string,
   ledger_version: number,
+  network: string,
 }
 
 app.use(function(req, res, next) {
@@ -35,8 +36,13 @@ app.post('/call_function', (req, res) => {
   if (body.ledger_version != null) {
     command += ` --ledger_version ${body.ledger_version}`
   }
+  if (body.network != null) {
+    command += ` --network ${body.network}`
+  }
+  console.log(command);
   const execution_result = execSync(command, {encoding: 'utf-8'});
-  const lines = execution_result.split('\n')
+  console.log(execution_result);
+  const lines = execution_result.split('\n');
   if (lines.length > 0) {
     res.json({
       details: lines,
