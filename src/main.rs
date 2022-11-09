@@ -30,6 +30,7 @@ use poem_openapi::payload::Json;
 use serde::{Deserialize, Serialize};
 use poem_openapi::Object;
 use clap::{arg, command};
+use clap::builder::TypedValueParser;
 use log::{error, info, LevelFilter};
 use simplelog::WriteLogger;
 use poem_openapi::__private::serde_json;
@@ -273,6 +274,9 @@ fn example(func: String, type_params: String, params: String, ledger_version: u6
                     println!()
                 }
                 Some(vals) => {
+                    // let deser_vals = vals.into_iter().map(|val| {
+                    //     MoveValue::simple_deserialize(&*val.0, &val.1).unwrap()
+                    // }).collect();
                     execution_res.return_values = vals
                 }
             }
@@ -285,7 +289,7 @@ fn example(func: String, type_params: String, params: String, ledger_version: u6
 
 #[cfg(test)]
 mod tests {
-    use log::{LevelFilter, SetLoggerError};
+    use log::{info, LevelFilter, SetLoggerError};
     use move_core_types::account_address::AccountAddress;
     use move_core_types::identifier::{Identifier, IdentStr};
     use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
@@ -316,7 +320,7 @@ mod tests {
     #[test]
     fn test_call_aptos_function_vault() {
         SimpleLogger::init(LevelFilter::Info, Config::default()).unwrap();
-        let storage = InMemoryLazyStorage::new(0, String::from("testnet"));
+        let storage = InMemoryLazyStorage::new(334551341, String::from("testnet"));
         let addr = AccountAddress::from_hex_literal("0xeaa6ac31312d55907f6c9d7a66432d92d4da3aeef7ceb4e6242a8414ac67fa82").unwrap();
         let module = ModuleId::new(addr, Identifier::new("vault").unwrap());
         let func = IdentStr::new("account_collateral_and_debt").unwrap();
@@ -338,6 +342,9 @@ mod tests {
             None => {}
             Some(val) => {
                 assert_eq!(val.len(), 2);
+                let deserialzed_value1 = MoveValue::simple_deserialize(&*val[0].0, &val[0].1).unwrap();
+                let deserialzed_value2 = MoveValue::simple_deserialize(&*val[1].0, &val[1].1).unwrap();
+                info!("[{}, {}]", deserialzed_value1, deserialzed_value2);
             }
         }
     }
