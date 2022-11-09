@@ -10,8 +10,6 @@ use move_core_types::identifier::Identifier;
 use move_core_types::language_storage::{ModuleId, StructTag};
 use aptos_sdk::rest_client::{Client, MoveModuleBytecode};
 use log::{error, info};
-use url::Url;
-use once_cell::sync::Lazy;
 use move_core_types::effects::{AccountChangeSet, ChangeSet, Op};
 use tokio::runtime::Runtime;
 use cacache;
@@ -80,7 +78,8 @@ impl InMemoryAccountStorage {
 pub struct InMemoryLazyStorage {
     accounts: BTreeMap<AccountAddress, InMemoryAccountStorage>,
     ledger_version: u64,
-    network: String
+    network: String,
+    client: Client
 }
 
 impl InMemoryLazyStorage {
@@ -104,16 +103,13 @@ impl InMemoryLazyStorage {
         Ok(())
     }
 
-    pub fn new(ledger_version: u64, network: String) -> Self {
+    pub fn new(ledger_version: u64, network: String, client: Client) -> Self {
         Self {
             accounts: BTreeMap::new(),
             ledger_version,
-            network
+            network,
+            client
         }
-    }
-
-    fn get_node_url(self) -> Url {
-        return Url::from_str(format!("https://fullnode.{}.aptoslabs.com", self.network).as_str()).unwrap()
     }
 }
 
@@ -151,7 +147,7 @@ impl ModuleResolver for InMemoryLazyStorage {
         }
 
         // Get account's modules from the chain
-        let rest_client = Client::new(self.clone().get_node_url());
+        let rest_client = self.client.clone();
         let aptos_account = AptosAccountAddress::from_bytes(module_id.address().into_bytes());
         match aptos_account {
             Ok(account_address) => {
@@ -197,7 +193,7 @@ impl ResourceResolver for InMemoryLazyStorage {
             }
         }
         // Get account's resources from the chain
-        let rest_client = Client::new(self.clone().get_node_url());
+        let rest_client = self.client.clone();
         let aptos_account = AptosAccountAddress::from_bytes(address.into_bytes());
         match aptos_account {
             Ok(account_address) => {
