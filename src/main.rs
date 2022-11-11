@@ -4,27 +4,27 @@ extern crate core;
 extern crate log;
 extern crate simplelog;
 
-use std::borrow::Borrow;
+
 use std::fs;
 
 use simplelog::*;
 
 use std::fs::File;
 use std::path::Path;
-use std::str::FromStr;
+
 use tempfile::tempdir;
 
 use anyhow::{bail, Result};
-use aptos_sdk::bcs::to_bytes;
-use aptos_sdk::rest_client::aptos_api_types::{MoveStructTag, MoveType};
+
+
 
 use aptos_sdk::rest_client::Client;
 use clap::{arg, command};
 use log::{error, info, LevelFilter};
 use move_core_types::account_address::AccountAddress;
 use move_core_types::identifier::{IdentStr, Identifier};
-use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
-use move_core_types::value::{MoveTypeLayout, MoveValue};
+use move_core_types::language_storage::{ModuleId, TypeTag};
+use move_core_types::value::{MoveValue};
 use move_stdlib;
 use move_vm_runtime::move_vm::MoveVM;
 use move_vm_test_utils::gas_schedule::{CostTable, Gas, GasStatus};
@@ -214,7 +214,7 @@ fn exec_func_internal(
     function: &IdentStr,
     type_args: Vec<TypeTag>,
     args: Vec<Vec<u8>>,
-) -> Option<Vec<(String)>> {
+) -> Option<Vec<String>> {
     let vm = MoveVM::new(move_stdlib::natives::all_natives(
         STD_ADDR,
         // TODO: come up with a suitable gas schedule
@@ -279,11 +279,11 @@ mod tests {
         exec_func, exec_func_internal, get_node_url, ExecutionResult, InMemoryLazyStorage,
     };
     use aptos_sdk::rest_client::Client;
-    use log::{info, LevelFilter, SetLoggerError};
+    use log::{info, LevelFilter};
     use move_core_types::account_address::AccountAddress;
     use move_core_types::identifier::{IdentStr, Identifier};
-    use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
-    use move_core_types::value::{MoveTypeLayout, MoveValue};
+    use move_core_types::language_storage::{ModuleId, TypeTag};
+    use move_core_types::value::{MoveValue};
     use once_cell::sync::Lazy;
     use simplelog::{Config, SimpleLogger};
 

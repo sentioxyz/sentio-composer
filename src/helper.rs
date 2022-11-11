@@ -170,7 +170,7 @@ pub fn serialize_input_params(input_params: Vec<&str>, param_types: Vec<MoveType
                     MoveType::Reference { .. } => {}
                     MoveType::Unparsable(_) => {}
                 },
-                MoveType::Struct(tag) => {
+                MoveType::Struct(_tag) => {
                     panic!("Struct type is not supported yet")
                 }
                 MoveType::GenericTypeParam { .. } => {
