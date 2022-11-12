@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::fs;
 use log::error;
-use serde::de::Unexpected::Str;
+
 use serde::Deserialize;
-use url::Url;
+
 
 #[derive(Deserialize)]
 pub struct ConfigData {
