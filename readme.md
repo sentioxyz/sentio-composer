@@ -1,9 +1,10 @@
 # Aptos tool to execute any on-chain function
 
-## build
+## CLI
+### build CLI
 `cargo build`
 
-## run
+### Run the CLI
 `./target/debug/view-function -h`
 ```shell
 Usage: view-function [OPTIONS] --func <FUNCTION>
@@ -18,8 +19,7 @@ Options:
   -V, --version                          Print version information
 
 ```
-
-## example
+### Example
 ```shell
 # command
 view-function --func 0xeaa6ac31312d55907f6c9d7a66432d92d4da3aeef7ceb4e6242a8414ac67fa82::vault::account_collateral_and_debt --type_params 0x1::aptos_coin::AptosCoin --params 0xf485fdf431d489c7bd0b83efa2413a6701fe4985d3e64a299a1a2e9fb46bcb82 --ledger_version 0 --network testnet
@@ -31,4 +31,16 @@ view-function --func 0xeaa6ac31312d55907f6c9d7a66432d92d4da3aeef7ceb4e6242a8414a
     "1103000000u64"
   ]
 }
+```
+
+## Web App
+### Start the web service:
+```shell
+cd app
+npm run start
+```
+### Start the frontend in dev mode
+```shell
+cd app/client
+npm run serve
 ```
