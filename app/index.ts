@@ -2,7 +2,7 @@ import express from 'express';
 import { execSync } from 'child_process';
 const app = express();
 
-const aptos_bin = "/Users/poytr1/workspace/move_prototype/target/debug/move_prototype"
+const aptos_bin = "/Users/poytr1/workspace/move_prototype/target/debug/view-function"
 
 app.get('/', (req, res) => {
     res.send('This is a test web page!');
@@ -45,12 +45,12 @@ app.post('/call_function', (req, res) => {
   const lines = execution_result.split('\n');
   if (lines.length > 0) {
     res.json({
-      details: lines,
+      details: execution_result,
       error: false
     })
   } else {
     res.json({
-      details: lines,
+      details: execution_result,
       error: true
     })
   }

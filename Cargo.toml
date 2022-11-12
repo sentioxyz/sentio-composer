@@ -1,5 +1,5 @@
 [package]
-name = "move_prototype"
+name = "view-function"
 version = "0.1.0"
 edition = "2021"
 
@@ -27,3 +27,4 @@ tempfile = "3.3.0"
 path-clean = "0.1.0"
 cacache = "10.0.1"
 serde_json = "1.0"
+home = "0.5.4"

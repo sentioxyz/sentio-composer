@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use tokio::runtime::Runtime;
 use url::Url;
+use home;
 
 pub fn absolute_path(path: impl AsRef<Path>) -> io::Result<PathBuf> {
     let path = path.as_ref();
@@ -28,9 +29,21 @@ pub fn absolute_path(path: impl AsRef<Path>) -> io::Result<PathBuf> {
 
 pub fn get_node_url(network: String) -> Url {
     return Url::from_str(format!("https://fullnode.{}.aptoslabs.com", network).as_str()).unwrap();
+    return Url::from_str("https://aptos-testnet.nodereal.io/v1/f0bd2babe59b4308b49df438b7c4ef45/v1").unwrap();
 }
 
 type Error = ();
+
+pub fn cache_folder() -> String {
+    return match home::home_dir() {
+        Some(path) => {
+            path.join(".move-modules-cache").into_os_string().into_string().unwrap()
+        }
+        None => {
+            String::from(".move-modules-cache")
+        }
+    }
+}
 
 pub fn get_function_module(
     client: Client,
@@ -42,7 +55,7 @@ pub fn get_function_module(
     let module_name = module_id.name().as_str();
     module_cache_key.push_str(module_name);
     module_cache_key.push_str(network.as_str());
-    let cached_module = cacache::read_sync("./modules-cache", module_cache_key.clone());
+    let cached_module = cacache::read_sync(cache_folder(), module_cache_key.clone());
     match cached_module {
         Ok(m) => {
             info!(

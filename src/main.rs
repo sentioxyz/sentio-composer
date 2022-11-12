@@ -4,7 +4,6 @@ extern crate core;
 extern crate log;
 extern crate simplelog;
 
-
 use std::fs;
 
 use simplelog::*;
@@ -15,8 +14,6 @@ use std::path::Path;
 use tempfile::tempdir;
 
 use anyhow::{bail, Result};
-
-
 
 use aptos_sdk::rest_client::Client;
 use clap::{arg, command};
@@ -188,10 +185,12 @@ fn exec_func(
     let splitted_type_params = type_params.split(",");
     let mut type_args: Vec<TypeTag> = vec![];
     splitted_type_params.into_iter().for_each(|tp| {
-        if tp.contains("::") {
-            type_args.push(construct_struct_type_tag_from_str(tp));
-        } else {
-            panic!("only support struct type parameters now!");
+        if tp.trim().len() > 0 {
+            if tp.contains("::") {
+                type_args.push(construct_struct_type_tag_from_str(tp));
+            } else {
+                panic!("only support struct type parameters now!");
+            }
         }
     });
 

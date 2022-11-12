@@ -2438,6 +2438,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "home"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "747309b4b440c06d57b0b25f2aee03ee9b5e5397d288c60e21fc709bb98a7408"
+dependencies = [
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "hostname"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4225,33 +4234,6 @@ dependencies = [
  "once_cell",
  "serde 1.0.147",
  "smallvec",
-]
-
-[[package]]
-name = "move_prototype"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "aptos-sdk",
- "cacache",
- "clap 4.0.18",
- "hex 0.4.3",
- "log",
- "move-binary-format 0.0.3 (git+https://github.com/move-language/move?rev=64a03b1d5bdc3751b95d89c675e63f1ca205e753)",
- "move-bytecode-utils 0.1.0 (git+https://github.com/move-language/move?rev=64a03b1d5bdc3751b95d89c675e63f1ca205e753)",
- "move-core-types 0.0.4 (git+https://github.com/move-language/move?rev=64a03b1d5bdc3751b95d89c675e63f1ca205e753)",
- "move-stdlib 0.1.1 (git+https://github.com/move-language/move?rev=64a03b1d5bdc3751b95d89c675e63f1ca205e753)",
- "move-vm-runtime 0.1.0 (git+https://github.com/move-language/move?rev=64a03b1d5bdc3751b95d89c675e63f1ca205e753)",
- "move-vm-test-utils 0.1.0 (git+https://github.com/move-language/move?rev=64a03b1d5bdc3751b95d89c675e63f1ca205e753)",
- "move-vm-types 0.1.0 (git+https://github.com/move-language/move?rev=64a03b1d5bdc3751b95d89c675e63f1ca205e753)",
- "once_cell",
- "path-clean",
- "serde 1.0.147",
- "serde_json",
- "simplelog 0.12.0",
- "tempfile",
- "tokio",
- "url",
 ]
 
 [[package]]
@@ -6730,6 +6712,34 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "view-function"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aptos-sdk",
+ "cacache",
+ "clap 4.0.18",
+ "hex 0.4.3",
+ "home",
+ "log",
+ "move-binary-format 0.0.3 (git+https://github.com/move-language/move?rev=64a03b1d5bdc3751b95d89c675e63f1ca205e753)",
+ "move-bytecode-utils 0.1.0 (git+https://github.com/move-language/move?rev=64a03b1d5bdc3751b95d89c675e63f1ca205e753)",
+ "move-core-types 0.0.4 (git+https://github.com/move-language/move?rev=64a03b1d5bdc3751b95d89c675e63f1ca205e753)",
+ "move-stdlib 0.1.1 (git+https://github.com/move-language/move?rev=64a03b1d5bdc3751b95d89c675e63f1ca205e753)",
+ "move-vm-runtime 0.1.0 (git+https://github.com/move-language/move?rev=64a03b1d5bdc3751b95d89c675e63f1ca205e753)",
+ "move-vm-test-utils 0.1.0 (git+https://github.com/move-language/move?rev=64a03b1d5bdc3751b95d89c675e63f1ca205e753)",
+ "move-vm-types 0.1.0 (git+https://github.com/move-language/move?rev=64a03b1d5bdc3751b95d89c675e63f1ca205e753)",
+ "once_cell",
+ "path-clean",
+ "serde 1.0.147",
+ "serde_json",
+ "simplelog 0.12.0",
+ "tempfile",
+ "tokio",
+ "url",
+]
 
 [[package]]
 name = "waker-fn"
