@@ -178,7 +178,7 @@ impl ResourceResolver for InMemoryLazyStorage {
                     .get(&AptosStructTag::from_str(tag.to_string().as_str()).unwrap())
                 {
                     info!(
-                        "load resource from address{} to get {}",
+                        "load resource from address {} to get {}",
                         address.to_string(),
                         tag.to_string()
                     );

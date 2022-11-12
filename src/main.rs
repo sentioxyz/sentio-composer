@@ -1,8 +1,8 @@
 mod helper;
 mod storage;
+mod config;
 extern crate core;
 extern crate log;
-extern crate simplelog;
 
 use std::fs;
 
@@ -10,8 +10,6 @@ use simplelog::*;
 
 use std::fs::File;
 use std::path::Path;
-
-use tempfile::tempdir;
 
 use anyhow::{bail, Result};
 
@@ -32,6 +30,7 @@ use crate::helper::{
     serialize_input_params,
 };
 use crate::storage::InMemoryLazyStorage;
+use crate::config::{ConfigData, ToolConfig};
 
 const STD_ADDR: AccountAddress = AccountAddress::ONE;
 
@@ -42,7 +41,8 @@ struct ExecutionResult {
 }
 
 fn main() {
-    let log_path = set_up_log();
+    let config = load_config();
+    let log_path = set_up_log(&config);
     let matches =
         command!() // requires `cargo` feature
             .arg(
@@ -122,13 +122,22 @@ fn main() {
         params,
         ledger_version,
         network,
+        &config,
         &mut execution_result,
     );
     println!("{}", serde_json::to_string_pretty(&execution_result).unwrap())
 }
 
-fn set_up_log() -> String {
-    let dir = tempdir().unwrap().path().file_name().unwrap().to_owned();
+fn load_config() -> ToolConfig {
+    let file_path = "config.toml";
+    if Path::new(file_path).exists() {
+        return ConfigData::from_file(file_path).config;
+    }
+    ConfigData::default().config
+}
+
+fn set_up_log(config: &ToolConfig) -> String {
+    let dir = Path::new(config.log_folder.as_ref().unwrap().as_str());
     fs::create_dir_all(dir.clone()).unwrap();
     let file = Path::new(&dir).join("aptos_tool_bin.log");
     let file_path = absolute_path(file)
@@ -151,6 +160,7 @@ fn exec_func(
     params: String,
     ledger_version: u64,
     network: String,
+    config: &ToolConfig,
     execution_res: &mut ExecutionResult,
 ) {
     // func: 0x54ad3d30af77b60d939ae356e6606de9a4da67583f02b962d2d3f2e481484e90::packet::hash_sha3_packet_bytes
@@ -162,7 +172,7 @@ fn exec_func(
     );
     let func_id = IdentStr::new(splitted_func.next().unwrap()).unwrap();
 
-    let client = Client::new(get_node_url(network.clone()));
+    let client = Client::new(get_node_url(network.clone(), config));
     // TODO(pcxu): serialize params according to abi
     let (_, abi) = get_function_module(client.clone(), &module, network.clone()).unwrap();
 
@@ -274,9 +284,7 @@ fn get_gas_status(cost_table: &CostTable, gas_budget: Option<u64>) -> Result<Gas
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        exec_func, exec_func_internal, get_node_url, ExecutionResult, InMemoryLazyStorage,
-    };
+    use crate::{exec_func, exec_func_internal, get_node_url, ExecutionResult, InMemoryLazyStorage, ConfigData, ToolConfig};
     use aptos_sdk::rest_client::Client;
     use log::{info, LevelFilter};
     use move_core_types::account_address::AccountAddress;
@@ -290,10 +298,11 @@ mod tests {
 
     static TESTNET: Lazy<String> = Lazy::new(|| String::from("testnet"));
 
+    static CONFIG: Lazy<ToolConfig> = Lazy::new(|| ConfigData::default().config);
     #[test]
     fn test_call_aptos_function() {
         SimpleLogger::init(LevelFilter::Info, Config::default()).unwrap();
-        let client = Client::new(get_node_url(MAINNET.to_owned()));
+        let client = Client::new(get_node_url(MAINNET.to_owned(), &CONFIG));
         let storage = InMemoryLazyStorage::new(0, MAINNET.to_owned(), client);
         let addr = AccountAddress::from_hex_literal(
             "0x54ad3d30af77b60d939ae356e6606de9a4da67583f02b962d2d3f2e481484e90",
@@ -331,6 +340,7 @@ mod tests {
             String::from("0xf485fdf431d489c7bd0b83efa2413a6701fe4985d3e64a299a1a2e9fb46bcb82"),
         0,
             String::from("testnet"),
+            &CONFIG,
             &mut execution_result);
         assert_eq!(execution_result.return_values.len(), 2);
         info!("{}", execution_result.return_values[0]);

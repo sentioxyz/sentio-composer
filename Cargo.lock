@@ -6736,8 +6736,8 @@ dependencies = [
  "serde 1.0.147",
  "serde_json",
  "simplelog 0.12.0",
- "tempfile",
  "tokio",
+ "toml",
  "url",
 ]
 

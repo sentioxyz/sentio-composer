@@ -131,3 +131,5 @@ dist
 .pnp.*
 .tmp*
 modules-cache
+config.toml
+.log

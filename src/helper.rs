@@ -13,6 +13,7 @@ use std::str::FromStr;
 use tokio::runtime::Runtime;
 use url::Url;
 use home;
+use crate::config::ToolConfig;
 
 pub fn absolute_path(path: impl AsRef<Path>) -> io::Result<PathBuf> {
     let path = path.as_ref();
@@ -27,9 +28,12 @@ pub fn absolute_path(path: impl AsRef<Path>) -> io::Result<PathBuf> {
     Ok(absolute_path)
 }
 
-pub fn get_node_url(network: String) -> Url {
-    return Url::from_str(format!("https://fullnode.{}.aptoslabs.com", network).as_str()).unwrap();
-    return Url::from_str("https://aptos-testnet.nodereal.io/v1/f0bd2babe59b4308b49df438b7c4ef45/v1").unwrap();
+pub fn get_node_url(network: String, config: &ToolConfig) -> Url {
+    if let Some(url) = config.network_configs.get(&*network) {
+        info!("Use client url: {}", url);
+        return Url::from_str(url.as_str()).unwrap()
+    }
+    panic!("Cannot find the network URL")
 }
 
 type Error = ();
@@ -100,7 +104,7 @@ pub fn get_function_module(
         );
         // caching the module
         cacache::write_sync(
-            "./modules-cache",
+            cache_folder(),
             module_cache_key.clone(),
             module.bytecode.0.clone(),
         )
