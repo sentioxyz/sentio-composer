@@ -178,9 +178,9 @@ export default defineComponent({
         .then((result) => {
           if (result.error) {
             // there was an error...
-            const error = 'Failed to call the function';
+            const error = 'Failed to call the function, check logs in the result';
             this.error = error;
-            this.result = error;
+            this.result = result.details;
           } else {
             this.error = '';
             this.result = result.details;
