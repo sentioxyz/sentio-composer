@@ -2,11 +2,7 @@ import express from 'express';
 import { execSync } from 'child_process';
 const app = express();
 
-const aptos_bin = "/Users/poytr1/workspace/move_prototype/target/debug/view-function"
-
-app.get('/', (req, res) => {
-    res.send('This is a test web page!');
-})
+const aptos_bin = "view-function"
 
 app.use(express.json())
 
@@ -16,6 +12,11 @@ interface CallFunctionBody {
   params: string,
   ledger_version: number,
   network: string,
+}
+
+interface ExecutionResult {
+  log_path: String,
+  return_values: []
 }
 
 app.use(function(req, res, next) {
@@ -42,8 +43,8 @@ app.post('/call_function', (req, res) => {
   console.log(command);
   const execution_result = execSync(command, {encoding: 'utf-8'});
   console.log(execution_result);
-  const lines = execution_result.split('\n');
-  if (lines.length > 0) {
+  const parsed_res: ExecutionResult = JSON.parse(execution_result);
+  if (parsed_res.return_values != null) {
     res.json({
       details: execution_result,
       error: false

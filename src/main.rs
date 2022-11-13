@@ -1,6 +1,6 @@
+mod config;
 mod helper;
 mod storage;
-mod config;
 extern crate core;
 extern crate log;
 
@@ -19,18 +19,18 @@ use log::{error, info, LevelFilter};
 use move_core_types::account_address::AccountAddress;
 use move_core_types::identifier::{IdentStr, Identifier};
 use move_core_types::language_storage::{ModuleId, TypeTag};
-use move_core_types::value::{MoveValue};
+use move_core_types::value::MoveValue;
 use move_stdlib;
 use move_vm_runtime::move_vm::MoveVM;
 use move_vm_test_utils::gas_schedule::{CostTable, Gas, GasStatus};
 use serde::{Deserialize, Serialize};
 
+use crate::config::{ConfigData, ToolConfig};
 use crate::helper::{
     absolute_path, construct_struct_type_tag_from_str, get_function_module, get_node_url,
     serialize_input_params,
 };
 use crate::storage::InMemoryLazyStorage;
-use crate::config::{ConfigData, ToolConfig};
 
 const STD_ADDR: AccountAddress = AccountAddress::ONE;
 
@@ -125,7 +125,10 @@ fn main() {
         &config,
         &mut execution_result,
     );
-    println!("{}", serde_json::to_string_pretty(&execution_result).unwrap())
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&execution_result).unwrap()
+    )
 }
 
 fn load_config() -> ToolConfig {
@@ -284,13 +287,16 @@ fn get_gas_status(cost_table: &CostTable, gas_budget: Option<u64>) -> Result<Gas
 
 #[cfg(test)]
 mod tests {
-    use crate::{exec_func, exec_func_internal, get_node_url, ExecutionResult, InMemoryLazyStorage, ConfigData, ToolConfig};
+    use crate::{
+        exec_func, exec_func_internal, get_node_url, ConfigData, ExecutionResult,
+        InMemoryLazyStorage, ToolConfig,
+    };
     use aptos_sdk::rest_client::Client;
     use log::{info, LevelFilter};
     use move_core_types::account_address::AccountAddress;
     use move_core_types::identifier::{IdentStr, Identifier};
     use move_core_types::language_storage::{ModuleId, TypeTag};
-    use move_core_types::value::{MoveValue};
+    use move_core_types::value::MoveValue;
     use once_cell::sync::Lazy;
     use simplelog::{Config, SimpleLogger};
 

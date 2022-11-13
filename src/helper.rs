@@ -1,5 +1,7 @@
+use crate::config::ToolConfig;
 use aptos_sdk::rest_client::aptos_api_types::{MoveModule, MoveType};
 use aptos_sdk::rest_client::{Client, MoveModuleBytecode};
+use home;
 use log::{error, info};
 use move_core_types::account_address::AccountAddress;
 use move_core_types::identifier::{IdentStr, Identifier};
@@ -12,8 +14,6 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use tokio::runtime::Runtime;
 use url::Url;
-use home;
-use crate::config::ToolConfig;
 
 pub fn absolute_path(path: impl AsRef<Path>) -> io::Result<PathBuf> {
     let path = path.as_ref();
@@ -31,7 +31,7 @@ pub fn absolute_path(path: impl AsRef<Path>) -> io::Result<PathBuf> {
 pub fn get_node_url(network: String, config: &ToolConfig) -> Url {
     if let Some(url) = config.network_configs.get(&*network) {
         info!("Use client url: {}", url);
-        return Url::from_str(url.as_str()).unwrap()
+        return Url::from_str(url.as_str()).unwrap();
     }
     panic!("Cannot find the network URL")
 }
@@ -40,13 +40,13 @@ type Error = ();
 
 pub fn cache_folder() -> String {
     return match home::home_dir() {
-        Some(path) => {
-            path.join(".move-modules-cache").into_os_string().into_string().unwrap()
-        }
-        None => {
-            String::from(".move-modules-cache")
-        }
-    }
+        Some(path) => path
+            .join(".move-modules-cache")
+            .into_os_string()
+            .into_string()
+            .unwrap(),
+        None => String::from(".move-modules-cache"),
+    };
 }
 
 pub fn get_function_module(
