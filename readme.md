@@ -1,22 +1,44 @@
-# Aptos tool to execute any on-chain function
+# Execute Any View Functions on Aptos Blockchain
+This project can be used to call view functions on the aptos blockchain. Given the input of the function and the corresponding ledger version, tool can execute that function and return the corresponding result.
 
-## CLI
-### build CLI
-`cargo build`
+It doesn't require the view functions as entry functions, and now supports all the networks including mainnet, testnet and devnet.
 
+This project includes a CLI tool, also we are building a web app on top of it.
+## Install the CLI tool
+You can choose to build the CLI tool on your own or download the binary directly from [release](https://github.com/sentioxyz/sentio-composer/releases) page.
+### To build it on your own:
+#### Install the Rust and Cargo
+`curl https://sh.rustup.rs -sSf | sh`
+#### To install the CLI tool globally
+`cargo install --git https://github.com/sentioxyz/sentio-composer`
+### To build debug or release binary locally
+1. Clone the project, and run `cargo build` in the root of the project.
+2. Release build, run `cargo build --release`.
+3. Check the target folder, you should find the binary **target/debug/view-function** or **target/release/view-function**.
+
+## CLI Usage
 ### Run the CLI
 `./target/debug/view-function -h`
 ```shell
 Usage: view-function [OPTIONS] --func <FUNCTION>
 
 Options:
-  -f, --func <FUNCTION>                  Function name to call, e.g. 0x1::foo::bar
-  -t, --type_params <TYPE_PARAMS>        Type parameters
-  -p, --params <PARAMS>                  Parameters
-  -l, --ledger_version <LEDGER_VERSION>  Ledger version
-  -n, --network <NETWORK>                network to use
-  -h, --help                             Print help information
-  -V, --version                          Print version information
+  -F, --func <FUNCTION>
+          Function name to call, e.g. 0x1::foo::bar.
+  -T, --type_params <TYPE_PARAMS>
+          Type parameters, seperated by ',' e.g. 0x1::aptos_coin::AptosCoin. [default: ]
+  -P, --params <PARAMS>
+          Parameters, seperated by ',' e.g. foo, bar. [default: ]
+  -L, --ledger_version <LEDGER_VERSION>
+          Ledger version, if not apply or 0, use the latest ledger version. [default: 0]
+  -N, --network <NETWORK>
+          Network to use, e.g. mainnet. [default: mainnet]
+  -C, --config <CONFIG_FILE>
+          Config file to use. [default: config.toml]
+  -h, --help
+          Print help information
+  -V, --version
+          Print version information
 
 ```
 ### Example
@@ -37,15 +59,29 @@ view-function \
   ]
 }
 ```
+### Config file
+You can also write some static configuration like log folder and network url settings to a local configuration file, the default file is `config.toml` in the tool running directory.
+Here is an example:
+```toml
+[config]
+log_folder = ".log"
+network_configs = { testnet = "https://aptos-testnet.nodereal.io/v1/1111111111111111/v1" }
+```
+### Logs
+The default log folder is `.log/aptos_too_bin.log` in the tool running directory.
 
 ## Web App
-### Start the web service:
+We also build a web app on top of the CLI tool, but it's in an early stage. For now you can try it locally.
+### To start the web service:
 ```shell
 cd app
+npm install
 npm run start
 ```
-### Start the frontend in dev mode
+### To start the frontend in dev mode
 ```shell
 cd app/client
+npm install
 npm run serve
 ```
+Now open `http://localhost:8080/`, you should find the page is up. ![app_screenshot](./static/img.png)

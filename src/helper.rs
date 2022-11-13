@@ -88,7 +88,6 @@ pub fn get_function_module(
         .into_inner()
         .into_iter()
         .find(|module| {
-            // MoveModuleBytecode::new(Vec::from(module.bytecode.0.as_bytes())).try_parse_abi()
             if let Ok(mod_) = MoveModuleBytecode::new(module.bytecode.0.to_vec()).try_parse_abi() {
                 abi = mod_.abi;
                 return abi.as_ref().unwrap().name.as_str() == module_id.name().as_str();

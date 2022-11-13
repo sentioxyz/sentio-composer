@@ -76,7 +76,7 @@ impl InMemoryAccountStorage {
     }
 }
 
-/// Simple in-memory lazy storage that can be used as a Move VM storage backend for testing purposes. It restores resources from the Aptos chain
+/// Simple in-memory lazy storage that can be used as a Move VM storage backend. It restores resources from the Aptos chain
 #[derive(Clone)]
 pub struct InMemoryLazyStorage {
     accounts: BTreeMap<AccountAddress, InMemoryAccountStorage>,

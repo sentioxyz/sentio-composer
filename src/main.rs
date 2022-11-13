@@ -41,77 +41,65 @@ struct ExecutionResult {
 }
 
 fn main() {
-    let config = load_config();
-    let log_path = set_up_log(&config);
     let matches =
         command!() // requires `cargo` feature
             .arg(
-                arg!(-f --func <FUNCTION> "Function name to call, e.g. 0x1::foo::bar")
+                arg!(-F --func <FUNCTION> "Function name to call, e.g. 0x1::foo::bar.")
                     .required(true),
             )
             .arg(
                 arg!(
-                    -t --type_params <TYPE_PARAMS> "Type parameters"
+                    -T --type_params <TYPE_PARAMS> "Type parameters, seperated by ',' e.g. 0x1::aptos_coin::AptosCoin."
                 )
+                    .default_value("")
                 .required(false),
             )
             .arg(
                 arg!(
-                    -p --params <PARAMS> "Parameters"
+                    -P --params <PARAMS> "Parameters, seperated by ',' e.g. foo, bar."
                 )
+                    .default_value("")
                 .required(false),
             )
             .arg(
                 arg!(
-                    -l --ledger_version <LEDGER_VERSION> "Ledger version"
+                    -L --ledger_version <LEDGER_VERSION> "Ledger version, if not apply or 0, use the latest ledger version."
                 )
                 .required(false)
+                    .default_value("0")
                 .value_parser(clap::value_parser!(u64)),
             )
             .arg(
                 arg!(
-                    -n --network <NETWORK> "network to use"
+                    -N --network <NETWORK> "Network to use, e.g. mainnet."
                 )
+                .default_value("mainnet")
                 .required(false),
+            )
+            .arg(
+                arg!(
+                    -C --config <CONFIG_FILE> "Config file to use."
+                ).default_value("config.toml").required(false)
             )
             .get_matches();
 
-    let func;
-    let type_params;
-    let params;
-    let ledger_version: u64;
-    let network: String;
-    if let Some(matched_func) = matches.get_one::<String>("func") {
-        info!("Value for func: {}", matched_func);
-        // TODO(pc): check if the function name is legal
-        func = matched_func.clone();
-    } else {
-        return;
-    }
-    if let Some(matched_tp) = matches.get_one::<String>("type_params") {
-        info!("Value for type parameters: {}", matched_tp);
-        type_params = matched_tp.clone();
-    } else {
-        type_params = "".parse().unwrap();
-    }
-    if let Some(matched_params) = matches.get_one::<String>("params") {
-        info!("Value for params: {}", matched_params);
-        params = matched_params.clone();
-    } else {
-        params = "".parse().unwrap();
-    }
-    if let Some(matched_ledger_version) = matches.get_one::<u64>("ledger_version") {
-        info!("Value for ledger version: {}", matched_ledger_version);
-        ledger_version = matched_ledger_version.clone();
-    } else {
-        ledger_version = 0;
-    }
-    if let Some(matched_network) = matches.get_one::<String>("network") {
-        info!("Value for network: {}", matched_network);
-        network = matched_network.clone();
-    } else {
-        network = "mainnet".parse().unwrap();
-    }
+    let func = matches.get_one::<String>("func").unwrap().clone();
+    let type_params = matches.get_one::<String>("type_params").unwrap().clone();
+    let params = matches.get_one::<String>("params").unwrap().clone();
+    let ledger_version: u64 = matches.get_one::<u64>("ledger_version").unwrap().clone();
+    let network: String = matches.get_one::<String>("network").unwrap().clone();
+    let config_file: String = matches.get_one::<String>("config").unwrap().clone();
+
+    let config = load_config(config_file.as_str());
+    let log_path = set_up_log(&config);
+
+    info!("Value for func: {}", func);
+    info!("Value for type parameters: {}", type_params);
+    info!("Value for params: {}", params);
+    info!("Value for ledger version: {}", ledger_version);
+    info!("Value for network: {}", network);
+    info!("Value for config file: {}", config_file);
+
     let mut execution_result = ExecutionResult {
         log_path,
         return_values: vec![],
@@ -131,8 +119,7 @@ fn main() {
     )
 }
 
-fn load_config() -> ToolConfig {
-    let file_path = "config.toml";
+fn load_config(file_path: &str) -> ToolConfig {
     if Path::new(file_path).exists() {
         return ConfigData::from_file(file_path).config;
     }
