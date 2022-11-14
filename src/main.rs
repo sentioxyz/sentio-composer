@@ -292,9 +292,15 @@ mod tests {
     static TESTNET: Lazy<String> = Lazy::new(|| String::from("testnet"));
 
     static CONFIG: Lazy<ToolConfig> = Lazy::new(|| ConfigData::default().config);
+
+    #[cfg(test)]
+    #[ctor::ctor]
+    fn init() {
+        SimpleLogger::init(LevelFilter::Info, Config::default()).unwrap();
+    }
+
     #[test]
     fn test_call_aptos_function() {
-        SimpleLogger::init(LevelFilter::Info, Config::default()).unwrap();
         let client = Client::new(get_node_url(MAINNET.to_owned(), &CONFIG));
         let storage = InMemoryLazyStorage::new(0, MAINNET.to_owned(), client);
         let addr = AccountAddress::from_hex_literal(
@@ -322,7 +328,6 @@ mod tests {
 
     #[test]
     fn test_call_aptos_function_vault_e2e() {
-        SimpleLogger::init(LevelFilter::Info, Config::default()).unwrap();
         let mut execution_result = ExecutionResult {
             log_path: String::new(),
             return_values: vec![],
