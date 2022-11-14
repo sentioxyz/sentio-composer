@@ -6721,6 +6721,7 @@ dependencies = [
  "aptos-sdk",
  "cacache",
  "clap 4.0.18",
+ "ctor",
  "hex 0.4.3",
  "home",
  "log",
