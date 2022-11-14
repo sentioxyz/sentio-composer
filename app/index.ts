@@ -8,8 +8,8 @@ app.use(express.json())
 
 interface CallFunctionBody {
   func: string,
-  type_params: string,
-  params: string,
+  type_args: string,
+  args: string,
   ledger_version: number,
   network: string,
 }
@@ -28,11 +28,11 @@ app.use(function(req, res, next) {
 app.post('/call_function', (req, res) => {
   let body = req.body as CallFunctionBody
   let command = `${aptos_bin} --func ${body.func}`
-  if (body.type_params != null && body.type_params.length > 0) {
-    command += ` --type_params ${body.type_params}`
+  if (body.type_args != null && body.type_args.length > 0) {
+    command += ` --type_args ${body.type_args}`
   }
-  if (body.params != null && body.params.length > 0) {
-    command += ` --params ${body.params}`
+  if (body.args != null && body.args.length > 0) {
+    command += ` --args ${body.args}`
   }
   if (body.ledger_version != null) {
     command += ` --ledger_version ${body.ledger_version}`
