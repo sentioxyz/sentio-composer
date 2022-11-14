@@ -49,14 +49,14 @@ fn main() {
             )
             .arg(
                 arg!(
-                    -T --type_params <TYPE_PARAMS> "Type parameters, seperated by ',' e.g. 0x1::aptos_coin::AptosCoin."
+                    -T --type_args <TYPE_ARGS> "Type parameters, seperated by ',' e.g. 0x1::aptos_coin::AptosCoin."
                 )
                     .default_value("")
                 .required(false),
             )
             .arg(
                 arg!(
-                    -P --params <PARAMS> "Parameters, seperated by ',' e.g. foo, bar."
+                    -A --args <ARGS> "Parameters, seperated by ',' e.g. foo, bar."
                 )
                     .default_value("")
                 .required(false),
@@ -84,8 +84,8 @@ fn main() {
             .get_matches();
 
     let func = matches.get_one::<String>("func").unwrap().clone();
-    let type_params = matches.get_one::<String>("type_params").unwrap().clone();
-    let params = matches.get_one::<String>("params").unwrap().clone();
+    let type_args = matches.get_one::<String>("type_args").unwrap().clone();
+    let args = matches.get_one::<String>("args").unwrap().clone();
     let ledger_version: u64 = matches.get_one::<u64>("ledger_version").unwrap().clone();
     let network: String = matches.get_one::<String>("network").unwrap().clone();
     let config_file: String = matches.get_one::<String>("config").unwrap().clone();
@@ -94,8 +94,8 @@ fn main() {
     let log_path = set_up_log(&config);
 
     info!("Value for func: {}", func);
-    info!("Value for type parameters: {}", type_params);
-    info!("Value for params: {}", params);
+    info!("Value for type arguments: {}", type_args);
+    info!("Value for arguments: {}", args);
     info!("Value for ledger version: {}", ledger_version);
     info!("Value for network: {}", network);
     info!("Value for config file: {}", config_file);
@@ -106,8 +106,8 @@ fn main() {
     };
     exec_func(
         func,
-        type_params,
-        params,
+        type_args,
+        args,
         ledger_version,
         network,
         &config,
@@ -146,8 +146,8 @@ fn set_up_log(config: &ToolConfig) -> String {
 
 fn exec_func(
     func: String,
-    type_params: String,
-    params: String,
+    type_args: String,
+    args: String,
     ledger_version: u64,
     network: String,
     config: &ToolConfig,
@@ -163,7 +163,7 @@ fn exec_func(
     let func_id = IdentStr::new(splitted_func.next().unwrap()).unwrap();
 
     let client = Client::new(get_node_url(network.clone(), config));
-    // TODO(pcxu): serialize params according to abi
+    // TODO(pcxu): serialize args according to abi
     let (_, abi) = get_function_module(client.clone(), &module, network.clone()).unwrap();
 
     let matched_func = abi
@@ -178,13 +178,13 @@ fn exec_func(
         panic!("No matched function found!");
     };
 
-    let splitted_params: Vec<&str> = params.split(",").collect();
-    let args: Vec<Vec<u8>> = serialize_input_params(splitted_params, param_types);
+    let splitted_args: Vec<&str> = args.split(",").collect();
+    let ser_args: Vec<Vec<u8>> = serialize_input_params(splitted_args, param_types);
 
     // For now, we only support struct type arg
-    let splitted_type_params = type_params.split(",");
+    let splitted_type_args = type_args.split(",");
     let mut type_args: Vec<TypeTag> = vec![];
-    splitted_type_params.into_iter().for_each(|tp| {
+    splitted_type_args.into_iter().for_each(|tp| {
         if tp.trim().len() > 0 {
             if tp.contains("::") {
                 type_args.push(construct_struct_type_tag_from_str(tp));
@@ -195,7 +195,7 @@ fn exec_func(
     });
 
     let storage = InMemoryLazyStorage::new(ledger_version, network, client.clone());
-    let res = exec_func_internal(storage, module, func_id, type_args, args);
+    let res = exec_func_internal(storage, module, func_id, type_args, ser_args);
     match res {
         None => execution_res.return_values = vec![],
         Some(vals) => {

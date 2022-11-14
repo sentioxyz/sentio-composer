@@ -20,13 +20,13 @@
         ></textarea>
       </div>
       <div class="form-group">
-        <label for="type_params">Type parameters</label>
+        <label for="type_args">Type parameters</label>
         <textarea
-          v-model="message.type_params"
+          v-model="message.type_args"
           type="text"
           style="height: 4rem"
           class="form-control"
-          id="type_params"
+          id="type_args"
           placeholder="Enter type parameters, seperated by ','"
         ></textarea>
       </div>
@@ -51,13 +51,13 @@
         />
       </div>
       <div class="form-group">
-        <label for="params">Parameters</label>
+        <label for="args">Parameters</label>
         <textarea
-          v-model="message.params"
+          v-model="message.args"
           type="text"
           class="form-control"
           style="height: 4rem"
-          id="params"
+          id="args"
           placeholder="Enter parameters, seperated by ','"
         ></textarea>
       </div>
@@ -148,8 +148,8 @@ export default defineComponent({
     // messages: [],
     message: {
       func: '',
-      type_params: '',
-      params: '',
+      type_args: '',
+      args: '',
       ledger_version: 0,
       network: '',
     },
