@@ -5,6 +5,8 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+server = ["dep:rocket", "dep:rocket_codegen"]
 
 [dependencies]
 aptos-sdk = { git = "https://github.com/aptos-labs/aptos-core", branch = "mainnet" }
@@ -29,6 +31,8 @@ cacache = "10.0.1"
 serde_json = "1.0"
 home = "0.5.4"
 toml = "0.5.9"
+rocket = { version = "0.4.4", optional = true }
+rocket_codegen = { version = "0.4.4", optional = true }
 
 [dev-dependencies]
 ctor = "0.1.26"
