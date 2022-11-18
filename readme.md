@@ -85,3 +85,7 @@ npm install
 npm run serve
 ```
 Now open `http://localhost:8080/`, you should find the page is up. ![app_screenshot](./static/img.png)
+### To start the web server with docker
+```shell
+sudo docker run --env BIN_PATH="/app/view-function" -d -p 4000:4000 poytr1/sentio-composer-server:latest
+```

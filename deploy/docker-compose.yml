@@ -2,10 +2,9 @@ version: "3.5"
 services:
   app:
     container_name: sentio-composer-server
-    image: sentio-composer-server:latest
+    image: poytr1/sentio-composer-server:latest
     restart: always
     build: .
-    # env_file: .env
     environment:
       - BIN_PATH=/app/view-function
     ports:
