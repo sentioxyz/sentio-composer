@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { HexString } from 'aptos';
 
 const app = express();
-const aptos_bin = 'bin/view-function';
+const aptos_bin = process.env.BIN_PATH ?? 'bin/view-function';
 const SUPPORTED_NETWORK = [
   'testnet',
   'mainnet',
@@ -37,20 +37,20 @@ app.post('/call_function', (req, res) => {
   try {
     let body = req.body as CallFunctionBody
     verify_function_name(body.func);
-    verify_type_args(body.type_args);
-    verify_ledger_version(body.ledger_version);
-    verify_network(body.network);
     let commands = ['--func', `${body.func}`];
     if (body.type_args != null && body.type_args.length > 0) {
+      verify_type_args(body.type_args);
       commands = commands.concat('--type_args', `${body.type_args}`);
     }
     if (body.args != null && body.args.length > 0) {
       commands = commands.concat('--args', `${reconstruct_args(body.args)}`);
     }
     if (body.ledger_version != null) {
+      verify_ledger_version(body.ledger_version);
       commands = commands.concat('--ledger_version', `${body.ledger_version}`);
     }
     if (body.network != null && body.network.length > 0) {
+      verify_network(body.network);
       commands = commands.concat('--network', `${body.network.toLowerCase()}`);
     }
     console.log(commands);
