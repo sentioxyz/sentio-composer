@@ -1,11 +1,16 @@
 import express from 'express';
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
-import { ModuleId } from 'aptos/src/aptos_types/transaction';
-import { StructTag } from 'aptos/src/aptos_types/type_tag';
+import { HexString } from 'aptos';
 
 const app = express();
-const aptos_bin = "bin/view-function"
+const aptos_bin = 'bin/view-function';
+const SUPPORTED_NETWORK = [
+  'testnet',
+  'mainnet',
+  'devnet'
+];
+const AccountAddressLength = 32;
 
 app.use(express.json())
 
@@ -29,24 +34,26 @@ app.use(function(req, res, next) {
 });
 
 app.post('/call_function', (req, res) => {
-  let body = req.body as CallFunctionBody
-  verify_function_name(body.func);
-  verify_type_args(body.type_args);
-  let commands = ['--func', `${body.func}`];
-  if (body.type_args != null && body.type_args.length > 0) {
-    commands = commands.concat('--type_args', `${body.type_args}`);
-  }
-  if (body.args != null && body.args.length > 0) {
-    commands = commands.concat('--args', `${reconstruct_args(body.args)}`);
-  }
-  if (body.ledger_version != null) {
-    commands = commands.concat('--ledger_version', `${body.ledger_version}`);
-  }
-  if (body.network != null && body.network.length > 0) {
-    commands = commands.concat('--network', `${body.network}`);
-  }
-  console.log(commands);
   try {
+    let body = req.body as CallFunctionBody
+    verify_function_name(body.func);
+    verify_type_args(body.type_args);
+    verify_ledger_version(body.ledger_version);
+    verify_network(body.network);
+    let commands = ['--func', `${body.func}`];
+    if (body.type_args != null && body.type_args.length > 0) {
+      commands = commands.concat('--type_args', `${body.type_args}`);
+    }
+    if (body.args != null && body.args.length > 0) {
+      commands = commands.concat('--args', `${reconstruct_args(body.args)}`);
+    }
+    if (body.ledger_version != null) {
+      commands = commands.concat('--ledger_version', `${body.ledger_version}`);
+    }
+    if (body.network != null && body.network.length > 0) {
+      commands = commands.concat('--network', `${body.network.toLowerCase()}`);
+    }
+    console.log(commands);
     process.env.RUST_BACKTRACE = '1';
     const execution_result = execFileSync(aptos_bin, commands, {encoding: 'utf-8'});
     console.log(execution_result);
@@ -63,13 +70,23 @@ app.post('/call_function', (req, res) => {
       })
     }
   } catch (e) {
-    res.json({
-      //@ts-ignore
-      details: e.stderr,
-      error: true
-    })
+    //@ts-ignore
+    if (e.stderr) {
+      res.json({
+        //@ts-ignore
+        details: e.stderr,
+        error: true
+      })
+    } else {
+      res.json({
+        //@ts-ignore
+        details: (e as Error).message,
+        error: true
+      })
+    }
+    throw e;
   }
-})  
+})
 
 app.listen(4000, () => {
     console.log('The application is listening on port 4000!');
@@ -90,16 +107,66 @@ function verify_function_name(qualifiedFuncName: string) {
   if (parts.length !== 3) {
     throw new Error("Invalid function name.");
   }
-  ModuleId.fromStr(`${parts[0]}::${parts[1]}`);
-  verify_identifier(parts[3]);
+  verify_module_id(`${parts[0]}::${parts[1]}`);
+  verify_identifier(parts[2]);
+}
+
+function verify_module_id(moduleId: string) {
+  const parts = moduleId.split("::");
+  if (parts.length !== 2) {
+    throw new Error("Invalid module id.");
+  }
+  verify_account_address(parts[0])
 }
 
 function verify_type_args(ty_args: string) {
   const ty_tag_strs = ty_args.split(',');
-  ty_tag_strs.forEach(str => StructTag.fromString(str.trim()));
+  ty_tag_strs.forEach(str => verify_struct_tag(str.trim()));
+}
+
+function verify_struct_tag(structTag: string) {
+   // Type args are not supported in string literal
+   if (structTag.includes("<")) {
+    throw new Error("Not implemented");
+  }
+
+  const parts = structTag.split("::");
+  if (parts.length !== 3) {
+    throw new Error("Invalid struct tag string literal.");
+  }
+  verify_account_address(parts[0]);
+}
+
+function verify_account_address(account_address: string) {
+  let address = HexString.ensure(account_address);
+
+  // If an address hex has odd number of digits, padd the hex string with 0
+  // e.g. '1aa' would become '01aa'.
+  if (address.noPrefix().length % 2 !== 0) {
+    address = new HexString(`0${address.noPrefix()}`);
+  }
+
+  const addressBytes = address.toUint8Array();
+
+  if (addressBytes.length > AccountAddressLength) {
+    // eslint-disable-next-line quotes
+    throw new Error("Hex string is too long. Address's length is 32 bytes.");
+  }
 }
 
 function reconstruct_args(args: string): string {
   const arg_strs = args.split(',');
   return arg_strs.map(str => str.trim()).join(',');
+}
+
+function verify_ledger_version(ledger_version: number) {
+  if (ledger_version < 0) {
+    throw new Error('Ledger version should be >= 0');
+  }
+}
+
+function verify_network(network: string) {
+  if (!SUPPORTED_NETWORK.includes(network.toLowerCase())) {
+    throw new Error(`${network} should be one of ${SUPPORTED_NETWORK}`);
+  }
 }
