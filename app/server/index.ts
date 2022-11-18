@@ -16,10 +16,13 @@ app.use(express.json())
 
 interface CallFunctionBody {
   func: string,
-  type_args: string,
-  args: string,
+  type_args: string[],
+  args: string[],
   ledger_version: number,
   network: string,
+  options?: {
+    with_logs: boolean
+  }
 }
 
 interface ExecutionResult {
@@ -42,13 +45,10 @@ app.post('/call_function', (req, res) => {
     verify_function_name(body.func);
     let commands = ['--func', `${body.func}`];
     if (body.type_args != null) {
-      body.type_args = body.type_args.trim();
-      if (!isEmpty(body.type_args)) {
-        verify_type_args(body.type_args);
-          commands = commands.concat('--type_args', `${body.type_args}`);
-      }
+      verify_type_args(body.type_args);
+      commands = commands.concat('--type_args', `${body.type_args.join(',')}`);
     }
-    if (!isEmpty(body.args)) {
+    if (body.args != null) {
       commands = commands.concat('--args', `${reconstruct_args(body.args)}`);
     }
     if (body.ledger_version != null) {
@@ -59,6 +59,7 @@ app.post('/call_function', (req, res) => {
       verify_network(body.network);
       commands = commands.concat('--network', `${body.network.toLowerCase()}`);
     }
+    const with_logs = body.options?.with_logs;
     console.log(commands);
     process.env.RUST_BACKTRACE = '1';
     const execution_result = execFileSync(aptos_bin, commands, {encoding: 'utf-8'});
@@ -66,12 +67,18 @@ app.post('/call_function', (req, res) => {
     const parsed_res: ExecutionResult = JSON.parse(execution_result);
     if (parsed_res.return_values != null && parsed_res.return_values.length > 0) {
       res.json({
-        details: JSON.stringify(parsed_res.return_values, null, 2),
+        details: {
+          return_values: parsed_res.return_values,
+          logs: with_logs ? read_log(parsed_res.log_path) : '',
+        },
         error: false
       })
     } else {
       res.json({
-        details: read_log(parsed_res.log_path),
+        details: {
+          return_values: [],
+          logs: with_logs ? read_log(parsed_res.log_path) : '',
+        },
         error: true
       })
     }
@@ -125,9 +132,8 @@ function verify_module_id(moduleId: string) {
   verify_account_address(parts[0])
 }
 
-function verify_type_args(ty_args: string) {
-  const ty_tag_strs = ty_args.split(',');
-  ty_tag_strs.forEach(str => verify_struct_tag(str.trim()));
+function verify_type_args(ty_args: string[]) {
+  ty_args.forEach(str => verify_struct_tag(str.trim()));
 }
 
 function verify_struct_tag(structTag: string) {
@@ -160,9 +166,8 @@ function verify_account_address(account_address: string) {
   }
 }
 
-function reconstruct_args(args: string): string {
-  const arg_strs = args.split(',');
-  return arg_strs.map(str => str.trim()).join(',');
+function reconstruct_args(args: string[]): string {
+  return args.map(str => str.trim()).join(',');
 }
 
 function verify_ledger_version(ledger_version: number) {

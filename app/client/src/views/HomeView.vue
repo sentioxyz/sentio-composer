@@ -167,9 +167,16 @@ export default defineComponent({
   methods: {
     callFunction() {
       console.log(this.message);
+      const requestBody = {
+        func: this.message.func,
+        type_args: this.message.type_args.trim().split(','),
+        args: this.message.args.trim().split(','),
+        ledger_version: this.message.ledger_version,
+        network: this.message.network,
+      };
       fetch(API_URL, {
         method: 'POST',
-        body: JSON.stringify(this.message),
+        body: JSON.stringify(requestBody),
         headers: {
           'content-type': 'application/json',
         },
@@ -178,12 +185,12 @@ export default defineComponent({
         .then((result) => {
           if (result.error) {
             // there was an error...
-            const error = 'Failed to call the function, check logs in the result';
+            const error = 'Failed to call the function, check errors in the result or re-call the function with logs = true';
             this.error = error;
-            this.result = result.details;
+            this.result = JSON.stringify(result.details, null, 2);
           } else {
             this.error = '';
-            this.result = result.details;
+            this.result = JSON.stringify(result.details, null, 2);
           }
           this.isShow = true;
         });
