@@ -133,3 +133,4 @@ dist
 modules-cache
 config.toml
 .log
+app/bin
