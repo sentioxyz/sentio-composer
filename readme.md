@@ -35,6 +35,8 @@ Options:
           Network to use, e.g. mainnet. [default: mainnet]
   -C, --config <CONFIG_FILE>
           Config file to use. [default: config.toml]
+      --log_level <LOG_LEVEL>
+          log level, one of 'Off', 'Error', 'Warn', 'Info', 'Debug', 'Trace'. [default: Off]
   -h, --help
           Print help information
   -V, --version
@@ -65,6 +67,7 @@ Here is an example:
 ```toml
 [config]
 log_folder = ".log"
+cache_folder = "."
 network_configs = { testnet = "https://aptos-testnet.nodereal.io/v1/1111111111111111/v1" }
 ```
 ### Logs

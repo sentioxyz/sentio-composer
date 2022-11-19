@@ -12,6 +12,7 @@ pub struct ConfigData {
 #[derive(Deserialize)]
 pub struct ToolConfig {
     pub log_folder: Option<String>,
+    pub cache_folder: Option<String>,
     pub network_configs: HashMap<String, String>,
 }
 
@@ -37,6 +38,9 @@ impl ConfigData {
         if let Some(folder) = data.config.log_folder {
             default_config.config.log_folder = Some(folder)
         }
+        if let Some(cache_folder) = data.config.cache_folder {
+            default_config.config.cache_folder = Some(cache_folder)
+        }
         default_config
             .config
             .network_configs
@@ -48,6 +52,7 @@ impl ConfigData {
         Self {
             config: ToolConfig {
                 log_folder: None,
+                cache_folder: None,
                 network_configs: HashMap::new(),
             },
         }
@@ -67,9 +72,14 @@ impl ConfigData {
             String::from("devnet"),
             String::from("https://fullnode.devnet.aptoslabs.com"),
         );
+        let home_path = match home::home_dir() {
+            Some(path) => path.into_os_string().into_string().unwrap(),
+            None => String::from("."),
+        };
         Self {
             config: ToolConfig {
                 log_folder: Some(String::from(".log")),
+                cache_folder: Some(home_path),
                 network_configs,
             },
         }

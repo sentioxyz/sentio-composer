@@ -4,7 +4,7 @@ use aptos_sdk::move_types::language_storage::StructTag as AptosStructTag;
 use crate::helper::get_function_module;
 use anyhow::{bail, Result};
 use aptos_sdk::rest_client::Client;
-use log::info;
+use log::{debug, error};
 use move_core_types::account_address::AccountAddress;
 use move_core_types::effects::{AccountChangeSet, ChangeSet, Op};
 use move_core_types::identifier::Identifier;
@@ -83,6 +83,7 @@ pub struct InMemoryLazyStorage {
     ledger_version: u64,
     network: String,
     client: Client,
+    cache_folder: String,
 }
 
 impl InMemoryLazyStorage {
@@ -103,12 +104,13 @@ impl InMemoryLazyStorage {
         Ok(())
     }
 
-    pub fn new(ledger_version: u64, network: String, client: Client) -> Self {
+    pub fn new(ledger_version: u64, network: String, client: Client, cache_folder: String) -> Self {
         Self {
             accounts: BTreeMap::new(),
             ledger_version,
             network,
             client,
+            cache_folder,
         }
     }
 }
@@ -128,8 +130,13 @@ impl ModuleResolver for InMemoryLazyStorage {
             }
         }
 
-        let (mod_, _) =
-            get_function_module(self.client.clone(), module_id, self.network.clone()).unwrap();
+        let (mod_, _) = get_function_module(
+            self.client.clone(),
+            module_id,
+            self.network.clone(),
+            self.cache_folder.clone(),
+        )
+        .unwrap();
 
         Ok(mod_)
     }
@@ -177,7 +184,7 @@ impl ResourceResolver for InMemoryLazyStorage {
                 if let Some(resource) = matched_resource
                     .get(&AptosStructTag::from_str(tag.to_string().as_str()).unwrap())
                 {
-                    info!(
+                    debug!(
                         "load resource from address {} to get {}",
                         address.to_string(),
                         tag.to_string()
@@ -186,7 +193,7 @@ impl ResourceResolver for InMemoryLazyStorage {
                 }
                 return Ok(None);
             }
-            Err(err) => print!("{}", err),
+            Err(err) => error!("{}", err),
         }
         Ok(None)
     }
