@@ -2,7 +2,7 @@ use crate::config::ToolConfig;
 use aptos_sdk::rest_client::aptos_api_types::{MoveModule, MoveType};
 use aptos_sdk::rest_client::{Client, MoveModuleBytecode};
 use home;
-use log::{error, info};
+use log::{debug, error, info, warn};
 use move_core_types::account_address::AccountAddress;
 use move_core_types::identifier::{IdentStr, Identifier};
 use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
@@ -38,31 +38,30 @@ pub fn get_node_url(network: String, config: &ToolConfig) -> Url {
 
 type Error = ();
 
-pub fn cache_folder() -> String {
-    return match home::home_dir() {
-        Some(path) => path
-            .join(".move-modules-cache")
-            .into_os_string()
-            .into_string()
-            .unwrap(),
-        None => String::from(".move-modules-cache"),
-    };
+fn get_cache_path(cache_folder: String) -> String {
+    return Path::new(&cache_folder)
+        .join(".move-modules-cache")
+        .into_os_string()
+        .into_string()
+        .unwrap();
 }
 
 pub fn get_function_module(
     client: Client,
     module_id: &ModuleId,
     network: String,
+    cache_folder: String,
 ) -> Result<(Option<Vec<u8>>, Option<MoveModule>), Error> {
     // Get modules from the local cache
     let mut module_cache_key = module_id.address().to_string().to_owned();
     let module_name = module_id.name().as_str();
     module_cache_key.push_str(module_name);
     module_cache_key.push_str(network.as_str());
-    let cached_module = cacache::read_sync(cache_folder(), module_cache_key.clone());
+    let cache_path = get_cache_path(cache_folder);
+    let cached_module = cacache::read_sync(cache_path.clone(), module_cache_key.clone());
     match cached_module {
         Ok(m) => {
-            info!(
+            debug!(
                 "loaded module from cache: {}::{}",
                 module_id.address(),
                 module_id.name().as_str()
@@ -74,7 +73,7 @@ pub fn get_function_module(
             return Ok((Some(m), _abi));
         }
         Err(e) => {
-            error!("{}", e);
+            warn!("{}", e);
         }
     }
 
@@ -96,14 +95,14 @@ pub fn get_function_module(
         });
     if let Some(module) = matched_module {
         // module.try_parse_abi()
-        info!(
+        debug!(
             "load module: {}::{}",
             module_id.address(),
             module_id.name().as_str()
         );
         // caching the module
         cacache::write_sync(
-            cache_folder(),
+            cache_path,
             module_cache_key.clone(),
             module.bytecode.0.clone(),
         )
