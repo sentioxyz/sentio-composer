@@ -6,7 +6,7 @@ services:
     restart: always
     volumes:
       - ./config.toml:/app/config.toml
-      - /Users/poytr1/.move-modules-cache:/app/.move-modules-cache
+      - ./.move-modules-cache:/app/.move-modules-cache
     environment:
       - BIN_PATH=/app/view-function
     ports:
