@@ -134,3 +134,4 @@ modules-cache
 config.toml
 .log
 **/*/bin
+**/.DS_Store

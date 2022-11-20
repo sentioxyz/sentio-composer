@@ -38,7 +38,7 @@ app.use(function(req, res, next) {
 
 const isEmpty = (str: string) => (!str?.length);
 
-app.post('/call_function', (req, res) => {
+app.post('/api/call_function', (req, res) => {
   try {
     let body = req.body as CallFunctionBody
     console.log(body);
