@@ -1,7 +1,6 @@
 set -e
 
-cd app/server
+cd app
 
-npm run docker
-
-docker image push poytr1/sentio-composer-server
+docker build -t poytr1/sentio-composer-app .
+docker image push poytr1/sentio-composer-app

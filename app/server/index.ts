@@ -13,6 +13,7 @@ const SUPPORTED_NETWORK = [
 const AccountAddressLength = 32;
 
 app.use(express.json())
+app.use(express.static('public'))
 
 interface CallFunctionBody {
   func: string,
