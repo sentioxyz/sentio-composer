@@ -9,15 +9,14 @@
       </div>
       <div class="form-group">
         <label for="function">Function</label>
-        <textarea
+        <input
           v-model="message.func"
-          style="height: 4rem"
           type="text"
           class="form-control"
           id="function"
           placeholder="Enter a function name, e.g. 0x1::foo::bar"
           required
-        ></textarea>
+        >
       </div>
       <div class="form-group">
         <label for="type_args">Type parameters</label>
@@ -28,6 +27,17 @@
           class="form-control"
           id="type_args"
           placeholder="Enter type parameters, seperated by ','"
+        ></textarea>
+      </div>
+      <div class="form-group">
+        <label for="args">Parameters</label>
+        <textarea
+          v-model="message.args"
+          type="text"
+          class="form-control"
+          style="height: 4rem"
+          id="args"
+          placeholder="Enter parameters, seperated by ','"
         ></textarea>
       </div>
       <div class="form-group">
@@ -42,24 +52,21 @@
       </div>
       <div class="form-group">
         <label for="network">Network</label>
-        <input
+        <select
           v-model="message.network"
-          type="text"
-          class="form-control"
           id="network"
-          placeholder="Enter Network"
-        />
+          style="height: 2rem"
+        >
+          <option disabled value="">Please select network</option>
+          <option>mainnet</option>
+          <option>testnet</option>
+          <option>devnet</option>
+        </select>
       </div>
-      <div class="form-group">
-        <label for="args">Parameters</label>
-        <textarea
-          v-model="message.args"
-          type="text"
-          class="form-control"
-          style="height: 4rem"
-          id="args"
-          placeholder="Enter parameters, seperated by ','"
-        ></textarea>
+      <div style="text-align: left;">
+        <label style="display: inline-block;" for="checkbox">Enable debug logs</label>
+        <input style="display: inline-block; margin-left: -12rem;"
+        type="checkbox" id="checkbox" v-model="message.with_logs" />
       </div>
       <div style="text-align: right; margin-top: 1rem">
         <button type="submit" class="btn btn-primary">Call Function</button>
@@ -152,6 +159,7 @@ export default defineComponent({
       args: '',
       ledger_version: 0,
       network: '',
+      with_logs: false,
     },
     isShow: false,
     result: '',
@@ -167,12 +175,16 @@ export default defineComponent({
   methods: {
     callFunction() {
       console.log(this.message);
+      const typeArgs = this.message.type_args.trim();
+      const args = this.message.args.trim();
+      const network = this.message.network.trim();
       const requestBody = {
         func: this.message.func,
-        type_args: this.message.type_args.trim().split(','),
-        args: this.message.args.trim().split(','),
+        type_args: typeArgs.length > 0 ? typeArgs.split(',') : undefined,
+        args: args.length > 0 ? args.split(',') : undefined,
         ledger_version: this.message.ledger_version,
-        network: this.message.network,
+        network: network.length > 0 ? network : undefined,
+        options: this.message.with_logs ? { with_logs: true } : undefined,
       };
       fetch(API_URL, {
         method: 'POST',
@@ -185,7 +197,7 @@ export default defineComponent({
         .then((result) => {
           if (result.error) {
             // there was an error...
-            const error = 'Failed to call the function, check errors in the result or re-call the function with logs = true';
+            const error = 'Failed to call the function, check errors in the result or re-call the function with debug logs enabled';
             this.error = error;
             this.result = JSON.stringify(result.details, null, 2);
           } else {

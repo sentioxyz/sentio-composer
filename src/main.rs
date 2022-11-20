@@ -25,6 +25,7 @@ use move_stdlib;
 use move_vm_runtime::move_vm::MoveVM;
 use move_vm_test_utils::gas_schedule::{CostTable, Gas, GasStatus};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::config::{ConfigData, ToolConfig};
 use crate::helper::{
@@ -140,7 +141,8 @@ fn set_up_log(config: &ToolConfig, log_level: String) -> String {
     }
     let dir = Path::new(config.log_folder.as_ref().unwrap().as_str());
     fs::create_dir_all(dir.clone()).unwrap();
-    let file = Path::new(&dir).join("aptos_tool_bin.log");
+    let id = Uuid::new_v4();
+    let file = Path::new(&dir).join(format!("aptos_tool_bin_{}.log", id.to_string()));
     let file_path = absolute_path(file)
         .unwrap()
         .into_os_string()
@@ -216,9 +218,6 @@ fn exec_func(
     match res {
         None => execution_res.return_values = vec![],
         Some(vals) => {
-            // let deser_vals = vals.into_iter().map(|val| {
-            //     MoveValue::simple_deserialize(&*val.0, &val.1).unwrap()
-            // }).collect();
             execution_res.return_values = vals
         }
     }
@@ -267,10 +266,9 @@ fn exec_func_internal(
             return Some(pretty_print_values);
         }
         Err(err) => {
-            error!("Error! {}", err.to_string())
+            panic!("Error while executing the function! {}", err.to_string())
         }
     }
-    return None;
 }
 
 fn get_gas_status(cost_table: &CostTable, gas_budget: Option<u64>) -> Result<GasStatus> {

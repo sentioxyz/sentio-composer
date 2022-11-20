@@ -60,6 +60,9 @@ app.post('/call_function', (req, res) => {
       commands = commands.concat('--network', `${body.network.toLowerCase()}`);
     }
     const with_logs = body.options?.with_logs;
+    if (with_logs) {
+      commands = commands.concat('--log_level', 'Debug');
+    }
     console.log(commands);
     process.env.RUST_BACKTRACE = '1';
     const execution_result = execFileSync(aptos_bin, commands, {encoding: 'utf-8'});
@@ -69,7 +72,7 @@ app.post('/call_function', (req, res) => {
       res.json({
         details: {
           return_values: parsed_res.return_values,
-          logs: with_logs ? read_log(parsed_res.log_path) : '',
+          logs: with_logs ? read_log(parsed_res.log_path).split('\n') : '',
         },
         error: false
       })
@@ -77,7 +80,7 @@ app.post('/call_function', (req, res) => {
       res.json({
         details: {
           return_values: [],
-          logs: with_logs ? read_log(parsed_res.log_path) : '',
+          logs: with_logs ? read_log(parsed_res.log_path).split('\n') : '',
         },
         error: true
       })
