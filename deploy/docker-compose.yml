@@ -8,4 +8,4 @@ services:
     environment:
       - BIN_PATH=/app/view-function
     ports:
-      - 4000:4000
+      - 8080:4000

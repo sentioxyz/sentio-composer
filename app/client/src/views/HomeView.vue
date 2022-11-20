@@ -145,14 +145,12 @@ textarea:focus {
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-
-const API_URL = 'http://localhost:4000/call_function';
+import axios from 'axios';
 
 export default defineComponent({
   name: 'sentio-homepage',
   data: () => ({
     error: '',
-    // messages: [],
     message: {
       func: '',
       type_args: '',
@@ -164,14 +162,16 @@ export default defineComponent({
     isShow: false,
     result: '',
   }),
-  computed: {
-    // reversedMessages() {
-    //   return this.messages.slice().reverse();
-    // }
+  watch: {
+    $route: {
+      immediate: true,
+      handler(to, from) {
+        document.title = to.meta.title || 'Sentio Composer';
+      },
+    },
   },
-  // mounted() {
-  //   this.resize();
-  // },
+  computed: {
+  },
   methods: {
     callFunction() {
       console.log(this.message);
@@ -186,15 +186,9 @@ export default defineComponent({
         network: network.length > 0 ? network : undefined,
         options: this.message.with_logs ? { with_logs: true } : undefined,
       };
-      fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify(requestBody),
-        headers: {
-          'content-type': 'application/json',
-        },
-      })
-        .then((response) => response.json())
-        .then((result) => {
+      axios.post('/api/call_function', requestBody)
+        .then((response) => {
+          const result = response.data;
           if (result.error) {
             // there was an error...
             const error = 'Failed to call the function, check errors in the result or re-call the function with debug logs enabled';
