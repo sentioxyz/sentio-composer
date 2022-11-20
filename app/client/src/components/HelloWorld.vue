@@ -36,7 +36,7 @@
 import { defineComponent } from 'vue';
 
 export default defineComponent({
-  name: 'HelloWorld',
+  name: 'SentioComposer',
   props: {
     msg: String,
   },
@@ -57,6 +57,6 @@ li {
   margin: 0 10px;
 }
 a {
-  color: #42b983;
+  color: #253E5D;
 }
 </style>

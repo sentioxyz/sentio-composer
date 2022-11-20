@@ -129,13 +129,13 @@ textarea {
 input:focus,
 textarea:focus {
   outline: none;
-  border-color: #42b983;
+  border-color: #253E5D;
 }
 
 .btn.btn-primary {
   line-height: inherit;
   padding: 0.5rem 1rem;
-  background: #42b983;
+  background: #20B2E4;
   border: none;
   color: white;
   border-radius: 0.25rem;

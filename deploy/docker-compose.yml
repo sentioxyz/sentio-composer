@@ -1,10 +1,12 @@
 version: "3.5"
 services:
   app:
-    container_name: sentio-composer-server
-    image: poytr1/sentio-composer-server:latest
+    container_name: sentio-composer-app
+    image: poytr1/sentio-composer-app:latest
     restart: always
-    build: .
+    volumes:
+      - ./config.toml:/app/config.toml
+      - /Users/poytr1/.move-modules-cache:/app/.move-modules-cache
     environment:
       - BIN_PATH=/app/view-function
     ports:
