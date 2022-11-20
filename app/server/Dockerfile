@@ -3,7 +3,7 @@ FROM node:bullseye
 # Create app directory
 WORKDIR /app
 
-RUN mkdir -p /app/bin && curl -SL https://github.com/sentioxyz/sentio-composer/releases/download/v0.2.0/view-function-x86_64-unknown-linux-gnu.tar.gz | tar xvzf - -C /app/bin
+RUN mkdir -p /app/bin && curl -SL https://github.com/sentioxyz/sentio-composer/releases/download/v0.3.0/view-function-x86_64-unknown-linux-gnu.tar.gz | tar xvzf - -C /app/bin
 
 # RUN mkdir bin && mv view-function ./bin 
 
