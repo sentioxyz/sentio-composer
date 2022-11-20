@@ -217,9 +217,7 @@ fn exec_func(
     let res = exec_func_internal(storage, module, func_id, type_args, ser_args);
     match res {
         None => execution_res.return_values = vec![],
-        Some(vals) => {
-            execution_res.return_values = vals
-        }
+        Some(vals) => execution_res.return_values = vals,
     }
 }
 
