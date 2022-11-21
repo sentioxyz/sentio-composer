@@ -1,7 +1,7 @@
 <template>
   <h1>Call Aptos Function</h1>
   <main>
-    <form @submit.prevent="callFunction" class="mb-3">
+    <form @submit.prevent="callFunction" @reset.prevent="clearInput" class="mb-3">
       <div v-if="error" class="alert alert-dismissible alert-warning">
         <button type="button" class="close" data-dismiss="alert">×</button>
         <h4 class="alert-heading">Error!</h4>
@@ -14,40 +14,40 @@
           type="text"
           class="form-control"
           id="function"
-          placeholder="Enter a function name, e.g. 0x1::foo::bar"
+          placeholder="Enter a qualified function name, e.g. 0x1::coin::balance"
           required
         >
       </div>
       <div class="form-group">
-        <label for="type_args">Type parameters</label>
+        <label for="type_args">Type arguments</label>
         <textarea
           v-model="message.type_args"
           type="text"
           style="height: 4rem"
           class="form-control"
           id="type_args"
-          placeholder="Enter type parameters, seperated by ','"
+          placeholder="Enter type arguments, seperated by ','"
         ></textarea>
       </div>
       <div class="form-group">
-        <label for="args">Parameters</label>
+        <label for="args">Arguments</label>
         <textarea
           v-model="message.args"
           type="text"
           class="form-control"
           style="height: 4rem"
           id="args"
-          placeholder="Enter parameters, seperated by ','"
+          placeholder="Enter arguments, seperated by ','"
         ></textarea>
       </div>
       <div class="form-group">
-        <label for="ledger_version">Ledger Version</label>
+        <label for="ledger_version">Ledger Version(0 means latest)</label>
         <input
           v-model="message.ledger_version"
           type="text"
           class="form-control"
           id="ledger_version"
-          placeholder="Enter the ledger version"
+          placeholder="Enter a ledger version. "
         />
       </div>
       <div class="form-group">
@@ -65,11 +65,19 @@
       </div>
       <div style="text-align: left;">
         <label style="display: inline-block;" for="checkbox">Enable debug logs</label>
-        <input style="display: inline-block; margin-left: -12rem;"
+        <input style="display: inline-block; margin-left: -10rem;"
         type="checkbox" id="checkbox" v-model="message.with_logs" />
       </div>
       <div style="text-align: right; margin-top: 1rem">
-        <button type="submit" class="btn btn-primary">Call Function</button>
+        <button
+          style="display: inline-block; margin-right: 1rem;"
+          type="reset"
+          class="btn btn-reset">
+          Clear inputs
+        </button>
+        <button style="display: inline-block;" type="submit" class="btn btn-primary">
+          Call Function
+        </button>
       </div>
     </form>
     <div>
@@ -79,7 +87,7 @@
         readonly
         v-model="result"
         type="text"
-        style="height: 15rem"
+        style="height: 21rem"
         id="result"
       ></textarea>
     </div>
@@ -141,22 +149,33 @@ textarea:focus {
   border-radius: 0.25rem;
   cursor: pointer;
 }
+
+.btn.btn-reset {
+  line-height: inherit;
+  padding: 0.5rem 1rem;
+  background: #FE75B4;
+  border: none;
+  color: white;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
 </style>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
 import axios from 'axios';
+import { number } from 'joi';
 
 export default defineComponent({
   name: 'sentio-homepage',
   data: () => ({
     error: '',
     message: {
-      func: '',
-      type_args: '',
-      args: '',
-      ledger_version: 0,
-      network: '',
+      func: '0x1::coin::balance',
+      type_args: '0x1::aptos_coin::AptosCoin',
+      args: '0x21ddba785f3ae9c6f03664ab07e9ad83595a0fa5ca556cec2b9d9e7100db0f07',
+      ledger_version: 35842267,
+      network: 'mainnet',
       with_logs: false,
     },
     isShow: false,
@@ -200,6 +219,16 @@ export default defineComponent({
           }
           this.isShow = true;
         });
+    },
+    clearInput() {
+      this.message = {
+        func: '',
+        type_args: '',
+        args: '',
+        ledger_version: 0,
+        network: '',
+        with_logs: false,
+      };
     },
   },
 });
