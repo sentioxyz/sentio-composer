@@ -53,14 +53,12 @@ fn main() {
                 arg!(
                     -T --type_args <TYPE_ARGS> "Type parameters, seperated by ',' e.g. 0x1::aptos_coin::AptosCoin."
                 )
-                    .default_value("")
                 .required(false),
             )
             .arg(
                 arg!(
                     -A --args <ARGS> "Parameters, seperated by ',' e.g. foo, bar."
                 )
-                    .default_value("")
                 .required(false),
             )
             .arg(
@@ -91,8 +89,8 @@ fn main() {
             .get_matches();
 
     let func = matches.get_one::<String>("func").unwrap().clone();
-    let type_args = matches.get_one::<String>("type_args").unwrap().clone();
-    let args = matches.get_one::<String>("args").unwrap().clone();
+    let type_args = matches.get_one::<String>("type_args");
+    let args = matches.get_one::<String>("args");
     let ledger_version: u64 = matches.get_one::<u64>("ledger_version").unwrap().clone();
     let network: String = matches.get_one::<String>("network").unwrap().clone();
     let config_file: String = matches.get_one::<String>("config").unwrap().clone();
@@ -102,8 +100,12 @@ fn main() {
     let log_path = set_up_log(&config, log_level.clone());
 
     debug!("Value for func: {}", func);
-    debug!("Value for type arguments: {}", type_args);
-    debug!("Value for arguments: {}", args);
+    if let Some(val) = type_args {
+        debug!("Value for type arguments: {}", val);
+    }
+    if let Some(val) = args {
+        debug!("Value for arguments: {}", val);
+    }
     debug!("Value for ledger version: {}", ledger_version);
     debug!("Value for network: {}", network);
     debug!("Value for config file: {}", config_file);
@@ -159,8 +161,8 @@ fn set_up_log(config: &ToolConfig, log_level: String) -> String {
 
 fn exec_func(
     func: String,
-    type_args: String,
-    args: String,
+    type_args_input: Option<&String>,
+    args_input: Option<&String>,
     ledger_version: u64,
     network: String,
     config: &ToolConfig,
@@ -197,21 +199,22 @@ fn exec_func(
         panic!("No matched function found!");
     };
 
-    let splitted_args: Vec<&str> = args.split(",").collect();
-    let ser_args: Vec<Vec<u8>> = serialize_input_params(splitted_args, param_types);
+    let ser_args: Vec<Vec<u8>> = serialize_input_params(args_input, param_types);
 
     // For now, we only support struct type arg
-    let splitted_type_args = type_args.split(",");
     let mut type_args: Vec<TypeTag> = vec![];
-    splitted_type_args.into_iter().for_each(|tp| {
-        if tp.trim().len() > 0 {
-            if tp.contains("::") {
-                type_args.push(construct_struct_type_tag_from_str(tp));
-            } else {
-                panic!("only support struct type parameters now!");
+    if let Some(tp_args_val) = type_args_input {
+        let splitted_type_args = tp_args_val.split(",");
+        splitted_type_args.into_iter().for_each(|tp| {
+            if tp.trim().len() > 0 {
+                if tp.contains("::") {
+                    type_args.push(construct_struct_type_tag_from_str(tp));
+                } else {
+                    panic!("only support struct type parameters now!");
+                }
             }
-        }
-    });
+        });
+    }
 
     let storage = InMemoryLazyStorage::new(ledger_version, network, client.clone(), cache_folder);
     let res = exec_func_internal(storage, module, func_id, type_args, ser_args);
@@ -346,8 +349,8 @@ mod tests {
         };
         exec_func(
             String::from("0xeaa6ac31312d55907f6c9d7a66432d92d4da3aeef7ceb4e6242a8414ac67fa82::vault::account_collateral_and_debt"),
-            String::from("0x1::aptos_coin::AptosCoin"),
-            String::from("0xf485fdf431d489c7bd0b83efa2413a6701fe4985d3e64a299a1a2e9fb46bcb82"),
+            Some(&String::from("0x1::aptos_coin::AptosCoin")),
+            Some(&String::from("0xf485fdf431d489c7bd0b83efa2413a6701fe4985d3e64a299a1a2e9fb46bcb82")),
         0,
             String::from("testnet"),
             &CONFIG,
@@ -355,5 +358,23 @@ mod tests {
         assert_eq!(execution_result.return_values.len(), 2);
         debug!("{}", execution_result.return_values[0]);
         debug!("{}", execution_result.return_values[1]);
+    }
+
+    #[test]
+    fn test_get_current_block_height() {
+        let mut execution_result = ExecutionResult {
+            log_path: String::new(),
+            return_values: vec![],
+        };
+        exec_func(
+            String::from("0x1::block::get_current_block_height"),
+            None,
+            None,
+            0,
+            String::from("mainnet"),
+            &CONFIG,
+            &mut execution_result);
+        assert_eq!(execution_result.return_values.len(), 1);
+        debug!("{}", execution_result.return_values[0]);
     }
 }
