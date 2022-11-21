@@ -5,6 +5,9 @@ It doesn't require the view functions as entry functions, and now supports all t
 
 This project includes a CLI tool, also we've built a web app on top of it. You can choose to use the CLI tool or directly start the web stack locally via docker.
 
+## Visit demo website at http://composer.sentio.xyz/
+We host a demo website for preview use, have a try :sparkles: !
+
 ## Start the Web APP locally
 ```shell
 sudo docker run --env BIN_PATH="/app/view-function" -d -p 8080:4000 poytr1/sentio-composer-app:latest
@@ -27,16 +30,16 @@ You can choose to build the CLI tool on your own or download the binary directly
 ## CLI Usage
 ### Run the CLI
 `view-function -h`
-```shell
+```
 Usage: view-function [OPTIONS] --func <FUNCTION>
 
 Options:
   -F, --func <FUNCTION>
           Function name to call, e.g. 0x1::foo::bar.
   -T, --type_args <TYPE_ARGS>
-          Type parameters, seperated by ',' e.g. 0x1::aptos_coin::AptosCoin. [default: ]
+          Type parameters, seperated by ',' e.g. 0x1::aptos_coin::AptosCoin.
   -A, --args <ARGS>
-          Parameters, seperated by ',' e.g. foo, bar. [default: ]
+          Parameters, seperated by ',' e.g. foo, bar.
   -L, --ledger_version <LEDGER_VERSION>
           Ledger version, if not apply or 0, use the latest ledger version. [default: 0]
   -N, --network <NETWORK>
@@ -49,23 +52,21 @@ Options:
           Print help information
   -V, --version
           Print version information
-
 ```
 ### Example
 ```shell
 # command
 view-function \
---func 0xeaa6ac31312d55907f6c9d7a66432d92d4da3aeef7ceb4e6242a8414ac67fa82::vault::account_collateral_and_debt \
+--func 0x1::coin::balance \
 --type_args 0x1::aptos_coin::AptosCoin \
---args 0xf485fdf431d489c7bd0b83efa2413a6701fe4985d3e64a299a1a2e9fb46bcb82 \
---ledger_version 0 \
---network testnet
+--args 0x21ddba785f3ae9c6f03664ab07e9ad83595a0fa5ca556cec2b9d9e7100db0f07 \
+--ledger_version 35842267 \
+--network mainnet
 # output
 {
-  "log_path": ".log/aptos_tool_bin.log",
+  "log_path": "",
   "return_values": [
-    "800000000u64",
-    "1103000000u64"
+    "3120544100u64"
   ]
 }
 ```

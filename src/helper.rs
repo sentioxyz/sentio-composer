@@ -125,80 +125,90 @@ pub fn construct_struct_type_tag_from_str(raw: &str) -> TypeTag {
     }));
 }
 
-pub fn serialize_input_params(input_params: Vec<&str>, param_types: Vec<MoveType>) -> Vec<Vec<u8>> {
-    assert_eq!(input_params.len(), param_types.len());
+pub fn serialize_input_params(
+    raw_args: Option<&String>,
+    param_types: Vec<MoveType>,
+) -> Vec<Vec<u8>> {
     let mut args: Vec<Vec<u8>> = Vec::new();
-    let mut param_types_iter = param_types.into_iter();
-    input_params.into_iter().for_each(|p| {
-        if p.trim().len() > 0 {
-            let current_param_type = param_types_iter.next().unwrap();
-            match current_param_type {
-                MoveType::Bool => {
-                    args.push(
-                        MoveValue::Bool(matches!(p.trim(), "true" | "t" | "1"))
-                            .simple_serialize()
-                            .unwrap(),
-                    );
-                }
-                MoveType::U8 => {
-                    let num = p.trim().parse::<u8>();
-                    args.push(MoveValue::U8(num.unwrap()).simple_serialize().unwrap());
-                }
-                MoveType::U64 => {
-                    let num = p.trim().parse::<u64>();
-                    args.push(MoveValue::U64(num.unwrap()).simple_serialize().unwrap());
-                }
-                MoveType::U128 => {
-                    let num = p.trim().parse::<u128>();
-                    args.push(MoveValue::U128(num.unwrap()).simple_serialize().unwrap());
-                }
-                MoveType::Address => {
-                    // Suppose it's an account parameter
-                    args.push(
-                        MoveValue::Address(AccountAddress::from_hex_literal(p.trim()).unwrap())
-                            .simple_serialize()
-                            .unwrap(),
-                    );
-                }
-                MoveType::Signer => {
-                    // Suppose it's an account parameter
-                    args.push(
-                        MoveValue::Signer(AccountAddress::from_hex_literal(p.trim()).unwrap())
-                            .simple_serialize()
-                            .unwrap(),
-                    );
-                }
-                MoveType::Vector { items } => match items.as_ref() {
-                    MoveType::Bool => {}
-                    MoveType::U8 => args.push(
-                        MoveValue::vector_u8(String::from(p.trim()).into_bytes())
-                            .simple_serialize()
-                            .unwrap(),
-                    ),
-                    MoveType::U64 => {}
-                    MoveType::U128 => {}
-                    MoveType::Address => {}
-                    MoveType::Signer => {}
-                    MoveType::Vector { .. } => {}
-                    MoveType::Struct(_) => {}
-                    MoveType::GenericTypeParam { .. } => {}
-                    MoveType::Reference { .. } => {}
-                    MoveType::Unparsable(_) => {}
-                },
-                MoveType::Struct(_tag) => {
-                    panic!("Struct type is not supported yet")
-                }
-                MoveType::GenericTypeParam { .. } => {
-                    panic!("Struct type is not supported yet")
-                }
-                MoveType::Reference { .. } => {
-                    panic!("Struct type is not supported yet")
-                }
-                MoveType::Unparsable(_) => {
-                    panic!("Unparsable paramter")
+    if let Some(args_val) = raw_args {
+        let input_params: Vec<&str> = args_val.split(",").collect();
+        assert_eq!(
+            input_params.len(),
+            param_types.len(),
+            "The length of provided input params is not equal to expected one."
+        );
+        let mut param_types_iter = param_types.into_iter();
+        input_params.into_iter().for_each(|p| {
+            if p.trim().len() > 0 {
+                let current_param_type = param_types_iter.next().unwrap();
+                match current_param_type {
+                    MoveType::Bool => {
+                        args.push(
+                            MoveValue::Bool(matches!(p.trim(), "true" | "t" | "1"))
+                                .simple_serialize()
+                                .unwrap(),
+                        );
+                    }
+                    MoveType::U8 => {
+                        let num = p.trim().parse::<u8>();
+                        args.push(MoveValue::U8(num.unwrap()).simple_serialize().unwrap());
+                    }
+                    MoveType::U64 => {
+                        let num = p.trim().parse::<u64>();
+                        args.push(MoveValue::U64(num.unwrap()).simple_serialize().unwrap());
+                    }
+                    MoveType::U128 => {
+                        let num = p.trim().parse::<u128>();
+                        args.push(MoveValue::U128(num.unwrap()).simple_serialize().unwrap());
+                    }
+                    MoveType::Address => {
+                        // Suppose it's an account parameter
+                        args.push(
+                            MoveValue::Address(AccountAddress::from_hex_literal(p.trim()).unwrap())
+                                .simple_serialize()
+                                .unwrap(),
+                        );
+                    }
+                    MoveType::Signer => {
+                        // Suppose it's an account parameter
+                        args.push(
+                            MoveValue::Signer(AccountAddress::from_hex_literal(p.trim()).unwrap())
+                                .simple_serialize()
+                                .unwrap(),
+                        );
+                    }
+                    MoveType::Vector { items } => match items.as_ref() {
+                        MoveType::Bool => {}
+                        MoveType::U8 => args.push(
+                            MoveValue::vector_u8(String::from(p.trim()).into_bytes())
+                                .simple_serialize()
+                                .unwrap(),
+                        ),
+                        MoveType::U64 => {}
+                        MoveType::U128 => {}
+                        MoveType::Address => {}
+                        MoveType::Signer => {}
+                        MoveType::Vector { .. } => {}
+                        MoveType::Struct(_) => {}
+                        MoveType::GenericTypeParam { .. } => {}
+                        MoveType::Reference { .. } => {}
+                        MoveType::Unparsable(_) => {}
+                    },
+                    MoveType::Struct(_tag) => {
+                        panic!("Struct type is not supported yet")
+                    }
+                    MoveType::GenericTypeParam { .. } => {
+                        panic!("Struct type is not supported yet")
+                    }
+                    MoveType::Reference { .. } => {
+                        panic!("Struct type is not supported yet")
+                    }
+                    MoveType::Unparsable(_) => {
+                        panic!("Unparsable paramter")
+                    }
                 }
             }
-        }
-    });
+        });
+    }
     return args;
 }
