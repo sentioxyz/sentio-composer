@@ -125,11 +125,18 @@ pub fn construct_struct_type_tag_from_str(raw: &str) -> TypeTag {
     }));
 }
 
-pub fn serialize_input_params(raw_args: Option<&String>, param_types: Vec<MoveType>) -> Vec<Vec<u8>> {
+pub fn serialize_input_params(
+    raw_args: Option<&String>,
+    param_types: Vec<MoveType>,
+) -> Vec<Vec<u8>> {
     let mut args: Vec<Vec<u8>> = Vec::new();
     if let Some(args_val) = raw_args {
         let input_params: Vec<&str> = args_val.split(",").collect();
-        assert_eq!(input_params.len(), param_types.len(), "The length of provided input params is not equal to expected one.");
+        assert_eq!(
+            input_params.len(),
+            param_types.len(),
+            "The length of provided input params is not equal to expected one."
+        );
         let mut param_types_iter = param_types.into_iter();
         input_params.into_iter().for_each(|p| {
             if p.trim().len() > 0 {

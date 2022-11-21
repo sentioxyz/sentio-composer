@@ -373,7 +373,8 @@ mod tests {
             0,
             String::from("mainnet"),
             &CONFIG,
-            &mut execution_result);
+            &mut execution_result,
+        );
         assert_eq!(execution_result.return_values.len(), 1);
         debug!("{}", execution_result.return_values[0]);
     }
