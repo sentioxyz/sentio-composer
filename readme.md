@@ -1,9 +1,10 @@
 # <img src="./static/logo.png" alt="drawing" width="40"/> Sentio Composer - Execute Any Functions on Aptos Blockchain
 This project can be used to call view functions on the aptos blockchain. Given the input of the function and the corresponding ledger version, tool can execute that function and return the corresponding result.
 
-It doesn't require the view functions as entry functions, and now supports all the networks including mainnet, testnet and devnet.
+It doesn't require the view functions as entry functions, and now supports the networks including mainnet, testnet and devnet.
 
-This project includes a CLI tool, also we've built a web app on top of it. You can choose to use the CLI tool or directly start the web stack locally via docker.
+This project includes a CLI tool, and we've also built a demo web app on top of it.
+You can choose to use the CLI tool or directly start the web stack locally via docker.
 
 ## Visit demo website at http://composer.sentio.xyz/
 We host a demo website for preview use, have a try :sparkles: !
@@ -71,19 +72,19 @@ view-function \
 }
 ```
 ### Config file
-You can also write some static configuration like log folder and network url settings to a local configuration file, the default file is `config.toml` in the tool running directory.
+You can also write some static configurations like log folder and network url settings to a local configuration file, the default file is `config.toml` in the tool running directory.
 Here is an example:
 ```toml
 [config]
 log_folder = ".log"
 cache_folder = "."
-network_configs = { testnet = "https://aptos-testnet.nodereal.io/v1/1111111111111111/v1" }
+network_configs = { testnet = "https://fullnode.mainnet.aptoslabs.com/v1" }
 ```
 ### Logs
 The default log folder is `.log/aptos_too_bin.log` in the tool running directory.
 
 ## Web App
-We also build a web app on top of the CLI tool, but it's in an early stage. For now you can try it locally.
+We also build a web app on top of the CLI tool, but it's for demo purpose only.
 ### To start the web service:
 ```shell
 cd app
@@ -96,4 +97,4 @@ cd app/client
 npm install
 npm run serve
 ```
-Now open `http://localhost:8080/`, you should find the page is up.
+Now open `http://localhost:8080/`, you should find the App is up.
