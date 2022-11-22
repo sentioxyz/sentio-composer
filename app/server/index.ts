@@ -2,6 +2,7 @@ import express from 'express';
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import { HexString } from 'aptos';
+import rateLimit from 'express-rate-limit';
 
 const app = express();
 const aptos_bin = process.env.BIN_PATH ?? 'bin/view-function';
@@ -30,6 +31,15 @@ interface ExecutionResult {
   log_path: string,
   return_values: []
 }
+
+app.use(
+  rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute duration in milliseconds
+    max: 50,
+    message: "You exceeded 50 requests in 1 minute limit!",
+    headers: true,
+  })
+)
 
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
