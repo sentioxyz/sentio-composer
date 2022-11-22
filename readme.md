@@ -81,13 +81,13 @@ cache_folder = "."
 network_configs = { testnet = "https://fullnode.mainnet.aptoslabs.com/v1" }
 ```
 ### Logs
-The default log folder is `.log/aptos_too_bin.log` in the tool running directory.
+The default log folder is `.log` in the tool running directory.
 
 ## Web App
 We also build a web app on top of the CLI tool, but it's for demo purpose only.
 ### To start the web service:
 ```shell
-cd app
+cd app/server
 npm install
 npm run start
 ```

@@ -136,3 +136,4 @@ config.toml
 **/*/bin
 **/.DS_Store
 **/public
+**/.move-modules-cache
