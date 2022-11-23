@@ -13,6 +13,7 @@ use std::path::Path;
 use std::str::FromStr;
 
 use anyhow::Result;
+use aptos_gas::{AbstractValueSizeGasParameters, NativeGasParameters, LATEST_GAS_FEATURE_VERSION};
 
 use aptos_sdk::rest_client::Client;
 use clap::{arg, command};
@@ -26,6 +27,10 @@ use move_vm_runtime::move_vm::MoveVM;
 use move_vm_test_utils::gas_schedule::{CostTable, Gas, GasStatus};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+use aptos_vm::natives;
+use move_table_extension::NativeTableContext;
+use move_vm_runtime::native_extensions::NativeContextExtensions;
 
 use crate::config::{ConfigData, ToolConfig};
 use crate::helper::{
@@ -231,19 +236,22 @@ fn exec_func_internal(
     type_args: Vec<TypeTag>,
     args: Vec<Vec<u8>>,
 ) -> Option<Vec<String>> {
-    let vm = MoveVM::new(move_stdlib::natives::all_natives(
-        STD_ADDR,
-        // TODO: come up with a suitable gas schedule
-        move_stdlib::natives::GasParameters::zeros(),
+    let vm = MoveVM::new(natives::aptos_natives(
+        NativeGasParameters::zeros(),
+        AbstractValueSizeGasParameters::zeros(),
+        LATEST_GAS_FEATURE_VERSION,
     ))
     .unwrap();
+
+    let mut extensions = NativeContextExtensions::default();
+    extensions.add(NativeTableContext::new([0u8; 32], &storage));
     let (mut session, mut gas_status) = {
         let gas_status = get_gas_status(
             &move_vm_test_utils::gas_schedule::INITIAL_COST_SCHEDULE,
             Some(1000000),
         )
         .unwrap();
-        let session = vm.new_session(&storage);
+        let session = vm.new_session_with_extensions(&storage, extensions);
         (session, gas_status)
     };
     let res = session.execute_function_bypass_visibility(
@@ -372,6 +380,25 @@ mod tests {
             None,
             0,
             String::from("mainnet"),
+            &CONFIG,
+            &mut execution_result,
+        );
+        assert_eq!(execution_result.return_values.len(), 1);
+        debug!("{}", execution_result.return_values[0]);
+    }
+
+    #[test]
+    fn test_aptos_native_function() {
+        let mut execution_result = ExecutionResult {
+            log_path: String::new(),
+            return_values: vec![],
+        };
+        exec_func(
+            String::from("0xa46f37ead5670b6862709a0f17f7464a767877cba7c3c18196bc8e1e0f3c3a89::stability_pool::account_deposit"),
+            None,
+            Some(&String::from("0xf485fdf431d489c7bd0b83efa2413a6701fe4985d3e64a299a1a2e9fb46bcb82")),
+            0,
+            String::from("testnet"),
             &CONFIG,
             &mut execution_result,
         );

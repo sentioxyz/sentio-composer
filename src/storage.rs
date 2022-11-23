@@ -10,6 +10,7 @@ use move_core_types::effects::{AccountChangeSet, ChangeSet, Op};
 use move_core_types::identifier::Identifier;
 use move_core_types::language_storage::{ModuleId, StructTag};
 use move_core_types::resolver::{ModuleResolver, ResourceResolver};
+use move_table_extension::{TableHandle, TableResolver};
 use std::str::FromStr;
 use std::{
     collections::{btree_map, BTreeMap},
@@ -195,6 +196,16 @@ impl ResourceResolver for InMemoryLazyStorage {
             }
             Err(err) => error!("{}", err),
         }
+        Ok(None)
+    }
+}
+
+impl TableResolver for InMemoryLazyStorage {
+    fn resolve_table_entry(
+        &self,
+        handle: &TableHandle,
+        key: &[u8],
+    ) -> std::result::Result<Option<Vec<u8>>, anyhow::Error> {
         Ok(None)
     }
 }
