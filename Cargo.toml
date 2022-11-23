@@ -10,14 +10,17 @@ edition = "2021"
 aptos-sdk = { git = "https://github.com/aptos-labs/aptos-core", branch = "mainnet" }
 url = "2.3.1"
 once_cell = "1.7.2"
-anyhow = "1.0.52"
-move-vm-runtime = { git = "https://github.com/move-language/move", rev = "64a03b1d5bdc3751b95d89c675e63f1ca205e753", features = ["lazy_natives"] }
-move-stdlib = { git = "https://github.com/move-language/move", rev = "64a03b1d5bdc3751b95d89c675e63f1ca205e753" }
-move-vm-types = { git = "https://github.com/move-language/move", rev = "64a03b1d5bdc3751b95d89c675e63f1ca205e753" }
-move-binary-format = { git = "https://github.com/move-language/move", rev = "64a03b1d5bdc3751b95d89c675e63f1ca205e753" }
-move-vm-test-utils = { git = "https://github.com/move-language/move", rev = "64a03b1d5bdc3751b95d89c675e63f1ca205e753", features = ["table-extension"] }
-move-core-types = { git = "https://github.com/move-language/move", rev = "64a03b1d5bdc3751b95d89c675e63f1ca205e753", features = ["address32"] }
-move-bytecode-utils = { git = "https://github.com/move-language/move", rev = "64a03b1d5bdc3751b95d89c675e63f1ca205e753" }
+anyhow = "1.0.62"
+move-vm-runtime = { git = "https://github.com/move-language/move", rev = "f7137eabc2046f76fdad3ded2c51e03a3b1fbd01", features = ["lazy_natives"] }
+move-stdlib = { git = "https://github.com/move-language/move", rev = "f7137eabc2046f76fdad3ded2c51e03a3b1fbd01" }
+move-vm-types = { git = "https://github.com/move-language/move", rev = "f7137eabc2046f76fdad3ded2c51e03a3b1fbd01" }
+move-binary-format = { git = "https://github.com/move-language/move", rev = "f7137eabc2046f76fdad3ded2c51e03a3b1fbd01" }
+move-vm-test-utils = { git = "https://github.com/move-language/move", rev = "f7137eabc2046f76fdad3ded2c51e03a3b1fbd01", features = ["table-extension"] }
+move-core-types = { git = "https://github.com/move-language/move", rev = "f7137eabc2046f76fdad3ded2c51e03a3b1fbd01", features = ["address32"] }
+move-bytecode-utils = { git = "https://github.com/move-language/move", rev = "f7137eabc2046f76fdad3ded2c51e03a3b1fbd01" }
+move-table-extension = { git = "https://github.com/move-language/move", rev = "f7137eabc2046f76fdad3ded2c51e03a3b1fbd01" }
+aptos-vm = { git = "https://github.com/aptos-labs/aptos-core", rev = "16781dcd0e8683c7408aed5f8e5de3c896ec152b" }
+aptos-gas = { git = "https://github.com/aptos-labs/aptos-core", rev = "16781dcd0e8683c7408aed5f8e5de3c896ec152b" }
 hex = "0.4.3"
 tokio = "1.21.2"
 serde = "1.0.147"
