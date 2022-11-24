@@ -22,7 +22,7 @@ use clap::{arg, command};
 use log::{debug, error, LevelFilter};
 use move_core_types::account_address::AccountAddress;
 use move_core_types::identifier::{IdentStr, Identifier};
-use move_core_types::language_storage::{CORE_CODE_ADDRESS, ModuleId, TypeTag};
+use move_core_types::language_storage::{ModuleId, TypeTag, CORE_CODE_ADDRESS};
 use move_core_types::value::MoveValue;
 use move_stdlib;
 use move_vm_runtime::move_vm::MoveVM;
@@ -245,12 +245,14 @@ fn exec_func_internal(
         AbstractValueSizeGasParameters::zeros(),
         LATEST_GAS_FEATURE_VERSION,
     );
-    let extended_natives: NativeFunctionTable = natives.into_iter()
+    let extended_natives: NativeFunctionTable = natives
+        .into_iter()
         .filter(|(_, name, _, _)| name.as_str() != "table")
         .chain(table::table_natives(
-        CORE_CODE_ADDRESS,
-        table::GasParameters::zeros(),
-    )).collect();
+            CORE_CODE_ADDRESS,
+            table::GasParameters::zeros(),
+        ))
+        .collect();
 
     let vm = MoveVM::new(extended_natives).unwrap();
 

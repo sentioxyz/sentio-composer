@@ -2,7 +2,10 @@ use aptos_sdk::move_types::account_address::AccountAddress as AptosAccountAddres
 use aptos_sdk::move_types::language_storage::StructTag as AptosStructTag;
 
 use crate::helper::get_function_module;
+use crate::table::{TableHandle, TableResolver};
 use anyhow::{bail, Error, Result};
+use aptos_sdk::bcs;
+use aptos_sdk::rest_client::aptos_api_types::mime_types::BCS;
 use aptos_sdk::rest_client::Client;
 use log::{debug, error};
 use move_core_types::account_address::AccountAddress;
@@ -10,18 +13,15 @@ use move_core_types::effects::{AccountChangeSet, ChangeSet, Op};
 use move_core_types::identifier::Identifier;
 use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
 use move_core_types::resolver::{ModuleResolver, ResourceResolver};
-use crate::table::{TableHandle, TableResolver};
+use move_vm_types::loaded_data::runtime_types::Type;
+use reqwest::header::ACCEPT;
+use serde_json::json;
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::{
     collections::{btree_map, BTreeMap},
     fmt::Debug,
 };
-use std::collections::HashMap;
-use aptos_sdk::bcs;
-use aptos_sdk::rest_client::aptos_api_types::mime_types::BCS;
-use move_vm_types::loaded_data::runtime_types::Type;
-use reqwest::header::ACCEPT;
-use serde_json::json;
 use tokio::runtime::Runtime;
 
 /// Simple in-memory storage for modules and resources under an account.
@@ -220,19 +220,32 @@ impl TableResolver for InMemoryLazyStorage {
         handle: &TableHandle,
         key_ty: &TypeTag,
         value_ty: &TypeTag,
-        key: &[u8]
+        key: &[u8],
     ) -> std::result::Result<Option<Vec<u8>>, Error> {
         let url_string = if self.ledger_version > 0 {
-            format!("https://fullnode.{}.aptoslabs.com/v1/tables/0x{}/item?ledger_version={}", self.network, handle.0, self.ledger_version)
+            format!(
+                "https://fullnode.{}.aptoslabs.com/v1/tables/0x{}/item?ledger_version={}",
+                self.network, handle.0, self.ledger_version
+            )
         } else {
-            format!("https://fullnode.{}.aptoslabs.com/v1/tables/0x{}/item", self.network, handle.0)
+            format!(
+                "https://fullnode.{}.aptoslabs.com/v1/tables/0x{}/item",
+                self.network, handle.0
+            )
         };
         let c = reqwest::blocking::Client::new();
         let mut map = HashMap::new();
         map.insert("key_type", key_ty.to_string());
         map.insert("value_type", value_ty.to_string());
         map.insert("key", hex::encode(key));
-        let resp = c.post(url_string).header(ACCEPT, BCS).json(&map).send().unwrap().bytes().unwrap();
+        let resp = c
+            .post(url_string)
+            .header(ACCEPT, BCS)
+            .json(&map)
+            .send()
+            .unwrap()
+            .bytes()
+            .unwrap();
         Ok(Some(resp.to_vec()))
     }
 }

@@ -285,7 +285,12 @@ impl Table {
             Entry::Vacant(entry) => {
                 let (gv, loaded) = match context
                     .resolver
-                    .resolve_table_entry_with_key_value_ty(&self.handle, key_ty, value_ty, entry.key())
+                    .resolve_table_entry_with_key_value_ty(
+                        &self.handle,
+                        key_ty,
+                        value_ty,
+                        entry.key(),
+                    )
                     .map_err(|err| {
                         partial_extension_error(format!("remote table resolver failure: {}", err))
                     })? {
@@ -367,10 +372,10 @@ impl CommonGasParameters {
     fn calculate_load_cost(&self, loaded: Option<Option<NumBytes>>) -> InternalGas {
         self.load_base
             + match loaded {
-            Some(Some(num_bytes)) => self.load_per_byte * num_bytes,
-            Some(None) => self.load_failure,
-            None => 0.into(),
-        }
+                Some(Some(num_bytes)) => self.load_per_byte * num_bytes,
+                Some(None) => self.load_failure,
+                None => 0.into(),
+            }
     }
 }
 
@@ -455,7 +460,12 @@ fn native_add_box(
     let key_bytes = serialize(&table.key_layout, &key)?;
     cost += gas_params.per_byte_serialized * NumBytes::new(key_bytes.len() as u64);
 
-    let (gv, loaded) = table.get_or_create_global_value_with_key_value_ty(table_context, &key_type, &value_type, key_bytes)?;
+    let (gv, loaded) = table.get_or_create_global_value_with_key_value_ty(
+        table_context,
+        &key_type,
+        &value_type,
+        key_bytes,
+    )?;
     cost += common_gas_params.calculate_load_cost(loaded);
 
     match gv.move_to(val) {
@@ -505,7 +515,12 @@ fn native_borrow_box(
     cost += gas_params.per_byte_serialized * NumBytes::new(key_bytes.len() as u64);
     let key_type = context.type_to_type_tag(&ty_args[0])?;
     let value_type = context.type_to_type_tag(&ty_args[2])?;
-    let (gv, loaded) = table.get_or_create_global_value_with_key_value_ty(table_context, &key_type, &value_type, key_bytes)?;
+    let (gv, loaded) = table.get_or_create_global_value_with_key_value_ty(
+        table_context,
+        &key_type,
+        &value_type,
+        key_bytes,
+    )?;
     cost += common_gas_params.calculate_load_cost(loaded);
 
     match gv.borrow_global() {
@@ -557,7 +572,12 @@ fn native_contains_box(
     let key_type = context.type_to_type_tag(&ty_args[0])?;
     let value_type = context.type_to_type_tag(&ty_args[2])?;
 
-    let (gv, loaded) = table.get_or_create_global_value_with_key_value_ty(table_context, &key_type, &value_type,key_bytes)?;
+    let (gv, loaded) = table.get_or_create_global_value_with_key_value_ty(
+        table_context,
+        &key_type,
+        &value_type,
+        key_bytes,
+    )?;
     cost += common_gas_params.calculate_load_cost(loaded);
 
     let exists = Value::bool(gv.exists()?);
@@ -606,7 +626,12 @@ fn native_remove_box(
     cost += gas_params.per_byte_serialized * NumBytes::new(key_bytes.len() as u64);
     let key_type = context.type_to_type_tag(&ty_args[0])?;
     let value_type = context.type_to_type_tag(&ty_args[2])?;
-    let (gv, loaded) = table.get_or_create_global_value_with_key_value_ty(table_context, &key_type, &value_type,key_bytes)?;
+    let (gv, loaded) = table.get_or_create_global_value_with_key_value_ty(
+        table_context,
+        &key_type,
+        &value_type,
+        key_bytes,
+    )?;
     cost += common_gas_params.calculate_load_cost(loaded);
 
     match gv.move_from() {
