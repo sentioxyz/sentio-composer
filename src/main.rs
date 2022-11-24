@@ -1,6 +1,8 @@
 mod config;
 mod helper;
 mod storage;
+mod table;
+
 extern crate core;
 extern crate log;
 
@@ -20,7 +22,7 @@ use clap::{arg, command};
 use log::{debug, error, LevelFilter};
 use move_core_types::account_address::AccountAddress;
 use move_core_types::identifier::{IdentStr, Identifier};
-use move_core_types::language_storage::{ModuleId, TypeTag};
+use move_core_types::language_storage::{CORE_CODE_ADDRESS, ModuleId, TypeTag};
 use move_core_types::value::MoveValue;
 use move_stdlib;
 use move_vm_runtime::move_vm::MoveVM;
@@ -29,8 +31,9 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use aptos_vm::natives;
-use move_table_extension::NativeTableContext;
 use move_vm_runtime::native_extensions::NativeContextExtensions;
+use move_vm_runtime::native_functions::NativeFunctionTable;
+use toml::value::Table;
 
 use crate::config::{ConfigData, ToolConfig};
 use crate::helper::{
@@ -38,6 +41,7 @@ use crate::helper::{
     serialize_input_params,
 };
 use crate::storage::InMemoryLazyStorage;
+use crate::table::NativeTableContext;
 
 const STD_ADDR: AccountAddress = AccountAddress::ONE;
 
@@ -236,12 +240,19 @@ fn exec_func_internal(
     type_args: Vec<TypeTag>,
     args: Vec<Vec<u8>>,
 ) -> Option<Vec<String>> {
-    let vm = MoveVM::new(natives::aptos_natives(
+    let natives = natives::aptos_natives(
         NativeGasParameters::zeros(),
         AbstractValueSizeGasParameters::zeros(),
         LATEST_GAS_FEATURE_VERSION,
-    ))
-    .unwrap();
+    );
+    let extended_natives: NativeFunctionTable = natives.into_iter()
+        .filter(|(_, name, _, _)| name.as_str() != "table")
+        .chain(table::table_natives(
+        CORE_CODE_ADDRESS,
+        table::GasParameters::zeros(),
+    )).collect();
+
+    let vm = MoveVM::new(extended_natives).unwrap();
 
     let mut extensions = NativeContextExtensions::default();
     extensions.add(NativeTableContext::new([0u8; 32], &storage));

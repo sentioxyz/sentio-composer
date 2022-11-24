@@ -112,6 +112,16 @@ pub fn get_function_module(
     Ok((None, abi))
 }
 
+// pub fn get_table_item(
+//     client: Client,
+//     table_handle: &AccountAddress,
+//     network: String,
+//     ledger_version: u64
+// ) {
+//     let aptos_account = AptosAccountAddress::from_bytes(table_handle.into_bytes()).unwrap();
+//     client.get_table_item_bcs(aptos_account, "", "", ())
+// }
+
 pub fn construct_struct_type_tag_from_str(raw: &str) -> TypeTag {
     let mut splitted = raw.split("::");
     let address = AccountAddress::from_hex_literal(splitted.next().unwrap()).unwrap();
