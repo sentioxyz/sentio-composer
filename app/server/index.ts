@@ -56,11 +56,10 @@ app.post('/api/call_function', (req, res) => {
     verify_function_name(body.func);
     let commands = ['--function-id', `${body.func}`];
     if (body.type_args != null) {
-      verify_type_args(body.type_args);
-      commands = commands.concat('--type-args', `${body.type_args.join(',')}`);
+      commands = commands.concat('--type-args', reconstruct_args(body.type_args));
     }
     if (body.args != null) {
-      commands = commands.concat('--args', `${reconstruct_args(body.args)}`);
+      commands = commands.concat('--args', reconstruct_args(body.args));
     }
     if (body.ledger_version != null) {
       verify_ledger_version(body.ledger_version);
@@ -72,7 +71,7 @@ app.post('/api/call_function', (req, res) => {
     }
     const with_logs = body.options?.with_logs;
     if (with_logs) {
-      commands = commands.concat('--log-level', 'Debug');
+      commands = commands.concat('--log-level', 'debug');
     }
     console.log(commands);
     process.env.RUST_BACKTRACE = '1';
@@ -146,23 +145,6 @@ function verify_module_id(moduleId: string) {
   verify_account_address(parts[0])
 }
 
-function verify_type_args(ty_args: string[]) {
-  ty_args.forEach(str => verify_struct_tag(str.trim()));
-}
-
-function verify_struct_tag(structTag: string) {
-   // Type args are not supported in string literal
-   if (structTag.includes("<")) {
-    throw new Error("Not implemented");
-  }
-
-  const parts = structTag.split("::");
-  if (parts.length !== 3) {
-    throw new Error("Invalid struct tag string literal.");
-  }
-  verify_account_address(parts[0]);
-}
-
 function verify_account_address(account_address: string) {
   let address = HexString.ensure(account_address);
 
@@ -180,8 +162,8 @@ function verify_account_address(account_address: string) {
   }
 }
 
-function reconstruct_args(args: string[]): string {
-  return args.map(str => str.trim()).join(',');
+function reconstruct_args(args: string[]): string[] {
+  return args.map(str => str.trim());
 }
 
 function verify_ledger_version(ledger_version: number) {
