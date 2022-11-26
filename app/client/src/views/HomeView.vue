@@ -165,7 +165,6 @@ textarea:focus {
 <script lang="ts">
 import { defineComponent } from 'vue';
 import axios from 'axios';
-import { event } from 'vue-gtag';
 
 export default defineComponent({
   name: 'sentio-homepage',
@@ -182,15 +181,6 @@ export default defineComponent({
     isShow: false,
     result: '',
   }),
-  setup() {
-    const login = () => {
-      event('login', { method: 'Google' });
-    };
-
-    return {
-      login,
-    };
-  },
   watch: {
     $route: {
       immediate: true,
