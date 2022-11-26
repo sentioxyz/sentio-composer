@@ -27,7 +27,7 @@
           style="height: 4rem"
           class="form-control"
           id="type_args"
-          placeholder="Enter type arguments, seperated by ','"
+          placeholder="Enter type arguments, one parameter per line"
         ></textarea>
       </div>
       <div class="form-group">
@@ -38,7 +38,7 @@
           class="form-control"
           style="height: 4rem"
           id="args"
-          placeholder="Enter arguments, seperated by ','"
+          placeholder="Enter arguments, one parameter per line"
         ></textarea>
       </div>
       <div class="form-group">
@@ -48,7 +48,7 @@
           type="text"
           class="form-control"
           id="ledger_version"
-          placeholder="Enter a ledger version. "
+          placeholder="Enter a ledger version"
         />
       </div>
       <div class="form-group">
@@ -199,8 +199,8 @@ export default defineComponent({
       const network = this.message.network.trim();
       const requestBody = {
         func: this.message.func,
-        type_args: typeArgs.length > 0 ? typeArgs.split(',') : undefined,
-        args: args.length > 0 ? args.split(',') : undefined,
+        type_args: typeArgs.length > 0 ? typeArgs.split('\n') : undefined,
+        args: args.length > 0 ? args.split('\n') : undefined,
         ledger_version: this.message.ledger_version,
         network: network.length > 0 ? network : undefined,
         options: this.message.with_logs ? { with_logs: true } : undefined,
