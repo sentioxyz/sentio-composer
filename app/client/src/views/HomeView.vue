@@ -9,14 +9,15 @@
       </div>
       <div class="form-group">
         <label for="function">Function</label>
-        <input
+        <textarea
           v-model="message.func"
+          style="height: 4rem;"
           type="text"
           class="form-control"
           id="function"
           placeholder="Enter a qualified function name, e.g. 0x1::coin::balance"
           required
-        >
+        ></textarea>
       </div>
       <div class="form-group">
         <label for="type_args">Type arguments</label>
@@ -164,7 +165,7 @@ textarea:focus {
 <script lang="ts">
 import { defineComponent } from 'vue';
 import axios from 'axios';
-import { number } from 'joi';
+import { event } from 'vue-gtag';
 
 export default defineComponent({
   name: 'sentio-homepage',
@@ -181,6 +182,15 @@ export default defineComponent({
     isShow: false,
     result: '',
   }),
+  setup() {
+    const login = () => {
+      event('login', { method: 'Google' });
+    };
+
+    return {
+      login,
+    };
+  },
   watch: {
     $route: {
       immediate: true,
