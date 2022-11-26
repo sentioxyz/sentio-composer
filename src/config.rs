@@ -2,6 +2,7 @@ use log::error;
 use std::collections::HashMap;
 use std::fs;
 
+use crate::types::Network;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -13,7 +14,34 @@ pub struct ConfigData {
 pub struct ToolConfig {
     pub log_folder: Option<String>,
     pub cache_folder: Option<String>,
-    pub network_configs: HashMap<String, String>,
+    pub network_configs: HashMap<Network, String>,
+}
+
+impl ToolConfig {
+    pub fn default() -> Self {
+        let mut network_configs = HashMap::new();
+        network_configs.insert(
+            Network::Mainnet,
+            String::from("https://fullnode.mainnet.aptoslabs.com"),
+        );
+        network_configs.insert(
+            Network::Testnet,
+            String::from("https://fullnode.testnet.aptoslabs.com"),
+        );
+        network_configs.insert(
+            Network::Devnet,
+            String::from("https://fullnode.devnet.aptoslabs.com"),
+        );
+        let home_path = match home::home_dir() {
+            Some(path) => path.into_os_string().into_string().unwrap(),
+            None => String::from("."),
+        };
+        Self {
+            log_folder: Some(String::from(".log")),
+            cache_folder: Some(home_path),
+            network_configs,
+        }
+    }
 }
 
 impl ConfigData {
@@ -59,29 +87,8 @@ impl ConfigData {
     }
 
     pub fn default() -> Self {
-        let mut network_configs = HashMap::new();
-        network_configs.insert(
-            String::from("mainnet"),
-            String::from("https://fullnode.mainnet.aptoslabs.com"),
-        );
-        network_configs.insert(
-            String::from("testnet"),
-            String::from("https://fullnode.testnet.aptoslabs.com"),
-        );
-        network_configs.insert(
-            String::from("devnet"),
-            String::from("https://fullnode.devnet.aptoslabs.com"),
-        );
-        let home_path = match home::home_dir() {
-            Some(path) => path.into_os_string().into_string().unwrap(),
-            None => String::from("."),
-        };
         Self {
-            config: ToolConfig {
-                log_folder: Some(String::from(".log")),
-                cache_folder: Some(home_path),
-                network_configs,
-            },
+            config: ToolConfig::default(),
         }
     }
 }

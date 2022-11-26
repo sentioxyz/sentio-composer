@@ -4,7 +4,6 @@ use aptos_sdk::move_types::language_storage::StructTag as AptosStructTag;
 use crate::helper::get_function_module;
 use crate::table::{TableHandle, TableResolver};
 use anyhow::{bail, Error, Result};
-use aptos_sdk::bcs;
 use aptos_sdk::rest_client::aptos_api_types::mime_types::BCS;
 use aptos_sdk::rest_client::Client;
 use log::{debug, error};
@@ -13,9 +12,7 @@ use move_core_types::effects::{AccountChangeSet, ChangeSet, Op};
 use move_core_types::identifier::Identifier;
 use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
 use move_core_types::resolver::{ModuleResolver, ResourceResolver};
-use move_vm_types::loaded_data::runtime_types::Type;
 use reqwest::header::ACCEPT;
-use serde_json::json;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::{
@@ -209,9 +206,9 @@ impl ResourceResolver for InMemoryLazyStorage {
 impl TableResolver for InMemoryLazyStorage {
     fn resolve_table_entry(
         &self,
-        handle: &TableHandle,
-        key: &[u8],
-    ) -> std::result::Result<Option<Vec<u8>>, anyhow::Error> {
+        _: &TableHandle,
+        _: &[u8],
+    ) -> std::result::Result<Option<Vec<u8>>, Error> {
         Ok(None)
     }
 

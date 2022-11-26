@@ -31,26 +31,28 @@ You can choose to build the CLI tool on your own or download the binary directly
 ## CLI Usage
 ### Run the CLI
 `view-function -h`
-```
-Usage: view-function [OPTIONS] --func <FUNCTION>
+``` 
+Call the view function on Aptos blockchain
+
+Usage: view-function [OPTIONS] --function-id <FUNCTION_ID>
 
 Options:
-  -F, --func <FUNCTION>
-          Function name to call, e.g. 0x1::foo::bar.
-  -T, --type_args <TYPE_ARGS>
-          Type parameters, seperated by ',' e.g. 0x1::aptos_coin::AptosCoin.
-  -A, --args <ARGS>
-          Parameters, seperated by ',' e.g. foo, bar.
-  -L, --ledger_version <LEDGER_VERSION>
-          Ledger version, if not apply or 0, use the latest ledger version. [default: 0]
-  -N, --network <NETWORK>
-          Network to use, e.g. mainnet. [default: mainnet]
-  -C, --config <CONFIG_FILE>
-          Config file to use. [default: config.toml]
-      --log_level <LOG_LEVEL>
-          log level, one of 'Off', 'Error', 'Warn', 'Info', 'Debug', 'Trace'. [default: Off]
+  -f, --function-id <FUNCTION_ID>
+          Function name as `<ADDRESS>::<MODULE_ID>::<FUNCTION_NAME>`
+  -a, --args [<ARGS>...]
+          Arguments separated by spaces
+  -t, --type-args [<TYPE_ARGS>...]
+          TypeTag arguments separated by spaces
+  -l, --ledger-version <LEDGER_VERSION>
+          Ledger version, if not apply or 0, use the latest ledger version [default: 0]
+  -n, --network <NETWORK>
+          Network to use [default: mainnet] [possible values: mainnet, testnet, devnet]
+  -c, --config <CONFIG>
+          Config file to use
+      --log-level <LOG_LEVEL>
+          Log level [default: off] [possible values: off, error, warn, info, debug, trace]
   -h, --help
-          Print help information
+          Print help information (use `--help` for more detail)
   -V, --version
           Print version information
 ```
@@ -58,10 +60,10 @@ Options:
 ```shell
 # command
 view-function \
---func 0x1::coin::balance \
---type_args 0x1::aptos_coin::AptosCoin \
+--function-id 0x1::coin::balance \
+--type-args 0x1::aptos_coin::AptosCoin \
 --args 0x21ddba785f3ae9c6f03664ab07e9ad83595a0fa5ca556cec2b9d9e7100db0f07 \
---ledger_version 35842267 \
+--ledger-version 35842267 \
 --network mainnet
 # output
 {
