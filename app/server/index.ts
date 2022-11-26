@@ -54,17 +54,17 @@ app.post('/api/call_function', (req, res) => {
     let body = req.body as CallFunctionBody
     console.log(body);
     verify_function_name(body.func);
-    let commands = ['--func', `${body.func}`];
+    let commands = ['--function-id', `${body.func}`];
     if (body.type_args != null) {
       verify_type_args(body.type_args);
-      commands = commands.concat('--type_args', `${body.type_args.join(',')}`);
+      commands = commands.concat('--type-args', `${body.type_args.join(',')}`);
     }
     if (body.args != null) {
       commands = commands.concat('--args', `${reconstruct_args(body.args)}`);
     }
     if (body.ledger_version != null) {
       verify_ledger_version(body.ledger_version);
-      commands = commands.concat('--ledger_version', `${body.ledger_version}`);
+      commands = commands.concat('--ledger-version', `${body.ledger_version}`);
     }
     if (!isEmpty(body.network)) {
       verify_network(body.network);
@@ -72,7 +72,7 @@ app.post('/api/call_function', (req, res) => {
     }
     const with_logs = body.options?.with_logs;
     if (with_logs) {
-      commands = commands.concat('--log_level', 'Debug');
+      commands = commands.concat('--log-level', 'Debug');
     }
     console.log(commands);
     process.env.RUST_BACKTRACE = '1';

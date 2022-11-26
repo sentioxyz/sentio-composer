@@ -1,11 +1,10 @@
 use crate::config::ToolConfig;
+use crate::types::Network;
 use aptos_sdk::rest_client::aptos_api_types::{MoveModule, MoveType};
 use aptos_sdk::rest_client::{Client, MoveModuleBytecode};
-use home;
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use move_core_types::account_address::AccountAddress;
-use move_core_types::identifier::{IdentStr, Identifier};
-use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
+use move_core_types::language_storage::ModuleId;
 use move_core_types::value::MoveValue;
 use path_clean::PathClean;
 use std::env;
@@ -28,8 +27,8 @@ pub fn absolute_path(path: impl AsRef<Path>) -> io::Result<PathBuf> {
     Ok(absolute_path)
 }
 
-pub fn get_node_url(network: String, config: &ToolConfig) -> Url {
-    if let Some(url) = config.network_configs.get(&*network) {
+pub fn get_node_url(network: &Network, config: &ToolConfig) -> Url {
+    if let Some(url) = config.network_configs.get(network) {
         info!("Use client url: {}", url);
         return Url::from_str(url.as_str()).unwrap();
     }
@@ -112,36 +111,12 @@ pub fn get_function_module(
     Ok((None, abi))
 }
 
-// pub fn get_table_item(
-//     client: Client,
-//     table_handle: &AccountAddress,
-//     network: String,
-//     ledger_version: u64
-// ) {
-//     let aptos_account = AptosAccountAddress::from_bytes(table_handle.into_bytes()).unwrap();
-//     client.get_table_item_bcs(aptos_account, "", "", ())
-// }
-
-pub fn construct_struct_type_tag_from_str(raw: &str) -> TypeTag {
-    let mut splitted = raw.split("::");
-    let address = AccountAddress::from_hex_literal(splitted.next().unwrap()).unwrap();
-    let module = Identifier::from(IdentStr::new(splitted.next().unwrap()).unwrap());
-    let name = Identifier::from(IdentStr::new(splitted.next().unwrap()).unwrap());
-    return TypeTag::Struct(Box::from(StructTag {
-        address,
-        module,
-        name,
-        type_params: vec![],
-    }));
-}
-
 pub fn serialize_input_params(
-    raw_args: Option<&String>,
+    raw_args: Option<Vec<String>>,
     param_types: Vec<MoveType>,
 ) -> Vec<Vec<u8>> {
     let mut args: Vec<Vec<u8>> = Vec::new();
-    if let Some(args_val) = raw_args {
-        let input_params: Vec<&str> = args_val.split(",").collect();
+    if let Some(input_params) = raw_args {
         assert_eq!(
             input_params.len(),
             param_types.len(),
