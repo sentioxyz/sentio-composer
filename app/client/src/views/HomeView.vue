@@ -215,7 +215,11 @@ export default defineComponent({
             this.result = JSON.stringify(result.details, null, 2);
           } else {
             this.error = '';
-            this.result = result.details.return_values.join('\n');
+            if (!this.message.with_logs) {
+              this.result = result.details.return_values.join('\n');
+            } else {
+              this.result = JSON.stringify(result.details, null, 2);
+            }
           }
           this.isShow = true;
         });
