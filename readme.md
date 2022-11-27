@@ -15,9 +15,8 @@ You can choose to use the CLI tool or directly start the web application locally
 ```shell
 sudo docker run --env BIN_PATH="/app/view-function" -d -p 8080:4000 poytr1/sentio-composer-app:latest
 ```
-Then open `http://localhost:8080/` to use it:
+Then open `http://localhost:8080/` to use it.
 
-![app_screenshot](./static/img.png)
 ## Install the CLI tool
 You can choose to build the CLI tool on your own or download the binary directly from [release](https://github.com/sentioxyz/sentio-composer/releases) page.
 ### To build it on your own:
@@ -101,4 +100,6 @@ cd app/client
 npm install
 npm run serve
 ```
-Now open `http://localhost:8080/`, you should find the App is up.
+Now open `http://localhost:8080/`, you should find the App is up:
+
+![app_screenshot](./static/img.png)
