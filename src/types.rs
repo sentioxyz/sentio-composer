@@ -1,7 +1,7 @@
 use clap::{command, Parser, ValueEnum};
+use move_core_types::value::MoveValue;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use move_core_types::value::MoveValue;
 
 #[derive(Serialize, Debug)]
 pub struct ExecutionResult {
