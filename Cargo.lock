@@ -7234,7 +7234,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
 name = "view-function"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "aptos-gas 0.1.0 (git+https://github.com/aptos-labs/aptos-core?rev=16781dcd0e8683c7408aed5f8e5de3c896ec152b)",

@@ -190,7 +190,7 @@ fn exec_func_internal(
     function: &IdentStr,
     type_args: Vec<TypeTag>,
     args: Vec<Vec<u8>>,
-) -> Option<Vec<String>> {
+) -> Option<Vec<MoveValue>> {
     let natives = natives::aptos_natives(
         NativeGasParameters::zeros(),
         AbstractValueSizeGasParameters::zeros(),
@@ -227,16 +227,16 @@ fn exec_func_internal(
     );
     match res {
         Ok(success_result) => {
-            let pretty_print_values: Vec<String> = success_result
+            let move_values: Vec<MoveValue> = success_result
                 .return_values
                 .clone()
                 .into_iter()
                 .map(|v| {
                     let deserialized_value = MoveValue::simple_deserialize(&*v.0, &v.1).unwrap();
-                    format!("{}", deserialized_value)
+                    deserialized_value
                 })
                 .collect();
-            return Some(pretty_print_values);
+            return Some(move_values);
         }
         Err(err) => {
             panic!("Error while executing the function! {}", err.to_string())
@@ -279,7 +279,7 @@ mod tests {
     #[cfg(test)]
     #[ctor::ctor]
     fn init() {
-        SimpleLogger::init(LevelFilter::Info, Config::default()).unwrap();
+        SimpleLogger::init(LevelFilter::Debug, Config::default()).unwrap();
     }
 
     #[test]
