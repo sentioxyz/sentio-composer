@@ -1,19 +1,18 @@
-# <img src="./static/logo.png" alt="drawing" width="40"/> Sentio Composer - Execute Any Functions on Aptos Blockchain
+# <img src="./static/logo.png" alt="drawing" width="40"/> Sentio Composer - Execute View Functions on Aptos Blockchain
 This project can be used to call view functions on the aptos blockchain. Given the input of the function and the corresponding ledger version, tool can execute that function and return the corresponding result.
 
 It doesn't require the view functions as entry functions, and now supports the networks including mainnet, testnet and devnet.
 
-This project includes a CLI tool, and we've also built a demo web app on top of it.
-You can choose to use the CLI tool or directly start the web stack locally via docker.
+This project includes a CLI tool and we've also built a demo web app on top of it.
+You can choose to use the CLI tool or directly start the web application locally via docker.
 
-## Visit demo website at http://composer.sentio.xyz/
-We host a demo website for preview use, have a try :sparkles: !
+## View demo at http://composer.sentio.xyz :sparkles:
 
-## Start the Web APP locally
+## Start the Web Application with Docker
 ```shell
 sudo docker run --env BIN_PATH="/app/view-function" -d -p 8080:4000 poytr1/sentio-composer-app:latest
 ```
-Now open `http://localhost:8080/`, APP is up.
+Then open `http://localhost:8080/` to use it:
 
 ![app_screenshot](./static/img.png)
 ## Install the CLI tool
