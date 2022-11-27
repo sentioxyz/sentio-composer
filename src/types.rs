@@ -1,11 +1,12 @@
 use clap::{command, Parser, ValueEnum};
+use move_core_types::value::MoveValue;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct ExecutionResult {
     pub(crate) log_path: String,
-    pub(crate) return_values: Vec<String>,
+    pub(crate) return_values: Vec<MoveValue>,
 }
 
 #[derive(ValueEnum, Deserialize, Eq, PartialEq, Hash, Clone, Copy, Debug)]

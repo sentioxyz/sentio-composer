@@ -215,7 +215,7 @@ export default defineComponent({
             this.result = JSON.stringify(result.details, null, 2);
           } else {
             this.error = '';
-            this.result = JSON.stringify(result.details, null, 2);
+            this.result = result.details.return_values.join('\n');
           }
           this.isShow = true;
         });
