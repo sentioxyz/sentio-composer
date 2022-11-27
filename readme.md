@@ -6,7 +6,10 @@ It doesn't require the view functions as entry functions, and now supports the n
 This project includes a CLI tool and we've also built a demo web app on top of it.
 You can choose to use the CLI tool or directly start the web application locally via docker.
 
-## View demo at http://composer.sentio.xyz :sparkles:
+## View live demo at http://composer.sentio.xyz :sparkles:
+
+## How it works
+<img src="./static/arch.png" alt="drawing"/>
 
 ## Start the Web Application with Docker
 ```shell
@@ -68,7 +71,7 @@ view-function \
 {
   "log_path": "",
   "return_values": [
-    "3120544100u64"
+    3120544100
   ]
 }
 ```
