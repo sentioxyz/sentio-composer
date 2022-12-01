@@ -69,6 +69,11 @@
         <input style="display: inline-block; margin-left: -10rem;"
         type="checkbox" id="checkbox" v-model="message.with_logs" />
       </div>
+      <div class="examples">
+        <button class="btn example" type="button" @click="() => loadExample(0)">Example 1</button>
+        <button class="btn example" type="button" @click="() => loadExample(1)">Example 2</button>
+        <button class="btn example" type="button" @click="() => loadExample(2)">Example 3</button>
+      </div>
       <div style="text-align: right; margin-top: 1rem">
         <button
           style="display: inline-block; margin-right: 1rem;"
@@ -141,24 +146,40 @@ textarea:focus {
   border-color: #253E5D;
 }
 
-.btn.btn-primary {
+.btn {
   line-height: inherit;
   padding: 0.5rem 1rem;
-  background: #20B2E4;
   border: none;
-  color: white;
   border-radius: 0.25rem;
   cursor: pointer;
 }
 
-.btn.btn-reset {
-  line-height: inherit;
-  padding: 0.5rem 1rem;
-  background: #FE75B4;
-  border: none;
+.btn.btn-primary {
+  background: #20B2E4;
   color: white;
-  border-radius: 0.25rem;
-  cursor: pointer;
+}
+
+.btn.btn-reset {
+  background: #FE75B4;
+  color: white;
+}
+
+.examples {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-gap: 1rem;
+}
+
+.example {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 4px;
+}
+
+.example:hover {
+  background: #20B2E4;
+  color: white;
 }
 </style>
 
@@ -233,6 +254,35 @@ export default defineComponent({
         network: '',
         with_logs: false,
       };
+    },
+    loadExample(n) {
+      const examples = [
+        {
+          func: 'fn1',
+          type_args: '',
+          args: '',
+          ledger_version: 0,
+          network: '',
+          with_logs: false,
+        }, {
+          func: 'fn2',
+          type_args: '',
+          args: '',
+          ledger_version: 0,
+          network: '',
+          with_logs: false,
+        }, {
+          func: 'fn3',
+          type_args: '',
+          args: '',
+          ledger_version: 0,
+          network: '',
+          with_logs: false,
+        },
+      ];
+      if (examples[n]) {
+        this.message = examples[n];
+      }
     },
   },
 });
