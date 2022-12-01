@@ -209,8 +209,25 @@ export default defineComponent({
         document.title = to.meta.title || 'Sentio Composer';
       },
     },
+    message: {
+      handler(newValue) {
+        this.$router.replace({
+          query: newValue,
+        });
+      },
+      deep: true,
+    },
   },
   computed: {
+  },
+  mounted() {
+    const { query } = this.$route;
+    if (query.func) {
+      this.message = {
+        ...query,
+        with_logs: query.with_logs === 'true',
+      };
+    }
   },
   methods: {
     callFunction() {
