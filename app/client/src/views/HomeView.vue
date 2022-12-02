@@ -275,25 +275,25 @@ export default defineComponent({
     loadExample(n) {
       const examples = [
         {
-          func: 'fn1',
-          type_args: '',
-          args: '',
+          func: '0x1::coin::balance',
+          type_args: '0x5a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948::lp_coin::LP<0x1::aptos_coin::AptosCoin, 0x84d7aeef42d38a5ffc3ccef853e1b82e4958659d16a7de736a29c55fbbeb0114::staked_aptos_coin::StakedAptosCoin, 0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::curves::Stable>',
+          args: '0xc0cbc38f05f1aed5467b889ef704135bc01f0a492d6fd28ef499d19e7bb58108',
           ledger_version: 0,
-          network: '',
+          network: 'mainnet',
           with_logs: false,
         }, {
-          func: 'fn2',
+          func: '0xb91d3fef0eeb4e685dc85e739c7d3e2968784945be4424e92e2f86e2418bf271::crank::peak',
           type_args: '',
-          args: '',
+          args: '0xd08a5107feb5f2df15c913702b0969ae4e22b3653a98c14fcd5e9e00cf8a039d\n2',
           ledger_version: 0,
-          network: '',
+          network: 'testnet',
           with_logs: false,
         }, {
-          func: 'fn3',
+          func: '0x6de517a18f003625e7fba9b9dc29b310f2e3026bbeb1997b3ada9de1e3cec8d6::opc::totalSupply',
           type_args: '',
           args: '',
           ledger_version: 0,
-          network: '',
+          network: 'mainnet',
           with_logs: false,
         },
       ];
