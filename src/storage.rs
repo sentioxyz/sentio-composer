@@ -2,7 +2,6 @@ use aptos_sdk::move_types::account_address::AccountAddress as AptosAccountAddres
 use aptos_sdk::move_types::language_storage::StructTag as AptosStructTag;
 
 use crate::helper::get_function_module;
-use crate::table::{TableHandle, TableResolver};
 use anyhow::{bail, Error, Result};
 use aptos_sdk::rest_client::aptos_api_types::mime_types::BCS;
 use aptos_sdk::rest_client::Client;
@@ -12,6 +11,7 @@ use move_core_types::effects::{AccountChangeSet, ChangeSet, Op};
 use move_core_types::identifier::Identifier;
 use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
 use move_core_types::resolver::{ModuleResolver, ResourceResolver};
+use move_table_extension::{TableHandle, TableResolver};
 use reqwest::header::ACCEPT;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -206,34 +206,22 @@ impl ResourceResolver for InMemoryLazyStorage {
 impl TableResolver for InMemoryLazyStorage {
     fn resolve_table_entry(
         &self,
-        _: &TableHandle,
-        _: &[u8],
-    ) -> std::result::Result<Option<Vec<u8>>, Error> {
-        Ok(None)
-    }
-
-    fn resolve_table_entry_with_key_value_ty(
-        &self,
         handle: &TableHandle,
-        key_ty: &TypeTag,
-        value_ty: &TypeTag,
         key: &[u8],
     ) -> std::result::Result<Option<Vec<u8>>, Error> {
         let url_string = if self.ledger_version > 0 {
             format!(
-                "https://fullnode.{}.aptoslabs.com/v1/tables/0x{}/item?ledger_version={}",
+                "https://fullnode.{}.aptoslabs.com/v1/tables/0x{}/raw_item?ledger_version={}",
                 self.network, handle.0, self.ledger_version
             )
         } else {
             format!(
-                "https://fullnode.{}.aptoslabs.com/v1/tables/0x{}/item",
+                "https://fullnode.{}.aptoslabs.com/v1/tables/0x{}/raw_item",
                 self.network, handle.0
             )
         };
         let c = reqwest::blocking::Client::new();
         let mut map = HashMap::new();
-        map.insert("key_type", key_ty.to_string());
-        map.insert("value_type", value_ty.to_string());
         map.insert("key", hex::encode(key));
         let resp = c
             .post(url_string)

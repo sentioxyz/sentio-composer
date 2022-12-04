@@ -31,13 +31,13 @@ use move_vm_test_utils::gas_schedule::{CostTable, Gas, GasStatus};
 use uuid::Uuid;
 
 use aptos_vm::natives;
+use move_table_extension::NativeTableContext;
 use move_vm_runtime::native_extensions::NativeContextExtensions;
 use move_vm_runtime::native_functions::NativeFunctionTable;
 
 use crate::config::{ConfigData, ToolConfig};
 use crate::helper::{absolute_path, get_function_module, get_node_url, serialize_input_params};
 use crate::storage::InMemoryLazyStorage;
-use crate::table::NativeTableContext;
 use crate::types::{ExecutionResult, LogLevel, Network, ViewFunction};
 
 const STD_ADDR: AccountAddress = AccountAddress::ONE;
@@ -196,16 +196,8 @@ fn exec_func_internal(
         AbstractValueSizeGasParameters::zeros(),
         LATEST_GAS_FEATURE_VERSION,
     );
-    let extended_natives: NativeFunctionTable = natives
-        .into_iter()
-        .filter(|(_, name, _, _)| name.as_str() != "table")
-        .chain(table::table_natives(
-            CORE_CODE_ADDRESS,
-            table::GasParameters::zeros(),
-        ))
-        .collect();
 
-    let vm = MoveVM::new(extended_natives).unwrap();
+    let vm = MoveVM::new(natives).unwrap();
 
     let mut extensions = NativeContextExtensions::default();
     extensions.add(NativeTableContext::new([0u8; 32], &storage));
@@ -359,9 +351,9 @@ mod tests {
             return_values: vec![],
         };
         exec_func(
-            String::from("0xa46f37ead5670b6862709a0f17f7464a767877cba7c3c18196bc8e1e0f3c3a89::stability_pool::account_deposit"),
+            String::from("0x193fbac5485237942de26fe360764e812b71a6b4f5ce8f374d41e3f55dcf01df::order::get_user_orders_history"),
             None,
-            Some(vec![String::from("0xf485fdf431d489c7bd0b83efa2413a6701fe4985d3e64a299a1a2e9fb46bcb82")]),
+            Some(vec![String::from("0x193fbac5485237942de26fe360764e812b71a6b4f5ce8f374d41e3f55dcf01df")]),
             0,
             &Network::Testnet,
             &CONFIG,
