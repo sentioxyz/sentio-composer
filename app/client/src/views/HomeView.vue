@@ -186,6 +186,7 @@ textarea:focus {
 <script lang="ts">
 import { defineComponent } from 'vue';
 import axios from 'axios';
+import stringify from 'json-stringify-pretty-compact';
 
 export default defineComponent({
   name: 'sentio-homepage',
@@ -250,13 +251,13 @@ export default defineComponent({
             // there was an error...
             const error = 'Failed to call the function, check errors in the result or re-call the function with debug logs enabled';
             this.error = error;
-            this.result = JSON.stringify(result.details, null, 2);
+            this.result = stringify(result.details);
           } else {
             this.error = '';
             if (!this.message.with_logs) {
-              this.result = result.details.return_values.join('\n');
+              this.result = stringify(result.details.return_values);
             } else {
-              this.result = JSON.stringify(result.details, null, 2);
+              this.result = stringify(result.details);
             }
           }
           this.isShow = true;
