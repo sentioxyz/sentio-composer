@@ -11,6 +11,7 @@ use move_core_types::effects::{AccountChangeSet, ChangeSet, Op};
 use move_core_types::identifier::Identifier;
 use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
 use move_core_types::resolver::{ModuleResolver, ResourceResolver};
+use move_table_extension::{TableHandle, TableResolver};
 use reqwest::header::ACCEPT;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -18,7 +19,6 @@ use std::{
     collections::{btree_map, BTreeMap},
     fmt::Debug,
 };
-use move_table_extension::{TableHandle, TableResolver};
 use tokio::runtime::Runtime;
 
 /// Simple in-memory storage for modules and resources under an account.
