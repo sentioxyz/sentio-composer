@@ -14,7 +14,8 @@
     "joi": "^17.7.0",
     "vue": "^3.2.13",
     "vue-gtag": "^2.0.1",
-    "vue-router": "^4.0.3"
+    "vue-router": "^4.0.3",
+    "json-stringify-pretty-compact": "^4.0.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.4.0",
