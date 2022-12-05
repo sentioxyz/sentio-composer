@@ -3,6 +3,9 @@
 	"image": "mcr.microsoft.com/devcontainers/rust:1-bullseye",
 	"hostRequirements": {
 		"memory": "6gb"
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {}
 	}
 
 	// Features to add to the dev container. More info: https://containers.dev/implementors/features.
