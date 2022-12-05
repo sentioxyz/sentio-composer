@@ -362,4 +362,23 @@ mod tests {
         assert_eq!(execution_result.return_values.len(), 1);
         debug!("{}", execution_result.return_values[0]);
     }
+
+    #[test]
+    fn test_account_deposit() {
+        let mut execution_result = ExecutionResult {
+            log_path: String::new(),
+            return_values: vec![],
+        };
+        exec_func(
+            String::from("0xa46f37ead5670b6862709a0f17f7464a767877cba7c3c18196bc8e1e0f3c3a89::stability_pool::account_deposit"),
+            None,
+            Some(vec![String::from("0x4da77591b6f79f490ce7ee66743b6985236fbed0e86d3afd65717553d4b780f8")]),
+            0,
+            &Network::Testnet,
+            &CONFIG,
+            &mut execution_result,
+        );
+        assert_eq!(execution_result.return_values.len(), 1);
+        debug!("{}", execution_result.return_values[0]);
+    }
 }

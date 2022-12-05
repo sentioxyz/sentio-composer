@@ -19,6 +19,7 @@ use std::{
     collections::{btree_map, BTreeMap},
     fmt::Debug,
 };
+use reqwest::StatusCode;
 use tokio::runtime::Runtime;
 
 /// Simple in-memory storage for modules and resources under an account.
@@ -228,9 +229,12 @@ impl TableResolver for InMemoryLazyStorage {
             .header(ACCEPT, BCS)
             .json(&map)
             .send()
-            .unwrap()
-            .bytes()
             .unwrap();
-        Ok(Some(resp.to_vec()))
+        if (resp.status() == StatusCode::NOT_FOUND) {
+            return Ok(None)
+        }
+
+        let bytes = resp.bytes().unwrap();
+        Ok(Some(bytes.to_vec()))
     }
 }
