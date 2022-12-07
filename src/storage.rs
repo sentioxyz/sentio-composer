@@ -13,13 +13,13 @@ use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
 use move_core_types::resolver::{ModuleResolver, ResourceResolver};
 use move_table_extension::{TableHandle, TableResolver};
 use reqwest::header::ACCEPT;
+use reqwest::StatusCode;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::{
     collections::{btree_map, BTreeMap},
     fmt::Debug,
 };
-use reqwest::StatusCode;
 use tokio::runtime::Runtime;
 
 /// Simple in-memory storage for modules and resources under an account.
@@ -231,7 +231,7 @@ impl TableResolver for InMemoryLazyStorage {
             .send()
             .unwrap();
         if resp.status() == StatusCode::NOT_FOUND {
-            return Ok(None)
+            return Ok(None);
         }
 
         let bytes = resp.bytes().unwrap();

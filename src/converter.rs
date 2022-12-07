@@ -17,26 +17,17 @@ pub fn move_value_to_json(val: MoveValue) -> Value {
                 let bytes = vec_to_vec_u8(vals).unwrap();
                 serde_json::to_value(format!("0x{}", hex::encode(&bytes))).unwrap()
             } else {
-                Value::Array(
-                    vals.into_iter()
-                        .map(|v| move_value_to_json(v))
-                        .collect()
-                )
+                Value::Array(vals.into_iter().map(|v| move_value_to_json(v)).collect())
             }
         }
         MoveValue::Struct(move_struct) => match move_struct {
             MoveStruct::Runtime(fields) => {
-                Value::Array(
-                    fields.into_iter()
-                        .map(|v| move_value_to_json(v))
-                        .collect()
-                )
+                Value::Array(fields.into_iter().map(|v| move_value_to_json(v)).collect())
             }
-            MoveStruct::WithFields( fields ) => struct_fields_to_json(fields),
-            MoveStruct::WithTypes { type_, fields } =>
-                struct_fields_to_json(fields)
-        }
-        MoveValue::Signer(add) => serde_json::to_value(add).unwrap()
+            MoveStruct::WithFields(fields) => struct_fields_to_json(fields),
+            MoveStruct::WithTypes { type_, fields } => struct_fields_to_json(fields),
+        },
+        MoveValue::Signer(add) => serde_json::to_value(add).unwrap(),
     }
 }
 
@@ -69,9 +60,8 @@ pub fn vec_to_vec_u8(vec: Vec<MoveValue>) -> Result<Vec<u8>> {
             }
             _ => {
                 return Err(anyhow!(
-                        "Expected inner MoveValue in Vec<MoveValue> to be a MoveValue::U8"
-                            .to_string(),
-                    ));
+                    "Expected inner MoveValue in Vec<MoveValue> to be a MoveValue::U8".to_string(),
+                ));
             }
         }
     }
@@ -80,10 +70,10 @@ pub fn vec_to_vec_u8(vec: Vec<MoveValue>) -> Result<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
+    use crate::converter::move_value_to_json;
     use move_core_types::account_address::AccountAddress;
     use move_core_types::value::MoveValue;
     use serde_json::json;
-    use crate::converter::move_value_to_json;
 
     #[test]
     fn test_number_to_json() {

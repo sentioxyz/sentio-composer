@@ -1,9 +1,9 @@
 mod config;
+mod converter;
 mod helper;
 mod storage;
 mod table;
 mod types;
-mod converter;
 
 extern crate core;
 extern crate log;
@@ -195,17 +195,24 @@ fn exec_func(
                     match t {
                         MoveType::Struct(struct_tag) => {
                             let module = ModuleId::new(
-                                 AccountAddress::from_bytes(struct_tag.address.inner().into_bytes()).unwrap(),
-                                 Identifier::from_str(struct_tag.module.as_str()).unwrap(),
+                                AccountAddress::from_bytes(struct_tag.address.inner().into_bytes())
+                                    .unwrap(),
+                                Identifier::from_str(struct_tag.module.as_str()).unwrap(),
                             );
                             let (_, abi) = get_module(
                                 client.clone(),
                                 &module,
                                 format!("{}", network),
                                 cache_folder.clone(),
-                            ).unwrap();
+                            )
+                            .unwrap();
 
-                            let fields_found = if let Some(ms) = abi.unwrap().structs.into_iter().find(|s| s.name.to_string() == struct_tag.name.to_string()) {
+                            let fields_found = if let Some(ms) = abi
+                                .unwrap()
+                                .structs
+                                .into_iter()
+                                .find(|s| s.name.to_string() == struct_tag.name.to_string())
+                            {
                                 Some(ms.fields)
                             } else {
                                 None
@@ -213,64 +220,87 @@ fn exec_func(
 
                             val = match val {
                                 MoveValue::Struct(MoveStruct::Runtime(struct_vals)) => {
-                                    MoveValue::Struct(MoveStruct::WithFields(struct_vals.into_iter().map(|v| {
-                                        (Identifier::from_str("dummy").unwrap(), v)
-                                    }).collect()))
+                                    MoveValue::Struct(MoveStruct::WithFields(
+                                        struct_vals
+                                            .into_iter()
+                                            .map(|v| (Identifier::from_str("dummy").unwrap(), v))
+                                            .collect(),
+                                    ))
                                 }
-                                _ => val
+                                _ => val,
                             }
                         }
-                        MoveType::Vector { items } => {
-                            match items.borrow() {
-                                MoveType::Struct(struct_tag) => {
-                                    let module = ModuleId::new(
-                                        AccountAddress::from_bytes(struct_tag.address.inner().into_bytes()).unwrap(),
-                                        Identifier::from_str(struct_tag.module.as_str()).unwrap(),
-                                    );
-                                    let (_, abi) = get_module(
-                                        client.clone(),
-                                        &module,
-                                        format!("{}", network),
-                                        cache_folder.clone(),
-                                    ).unwrap();
+                        MoveType::Vector { items } => match items.borrow() {
+                            MoveType::Struct(struct_tag) => {
+                                let module = ModuleId::new(
+                                    AccountAddress::from_bytes(
+                                        struct_tag.address.inner().into_bytes(),
+                                    )
+                                    .unwrap(),
+                                    Identifier::from_str(struct_tag.module.as_str()).unwrap(),
+                                );
+                                let (_, abi) = get_module(
+                                    client.clone(),
+                                    &module,
+                                    format!("{}", network),
+                                    cache_folder.clone(),
+                                )
+                                .unwrap();
 
-                                    let fields_found = if let Some(ms) = abi.unwrap().structs.into_iter().find(|s| s.name.to_string() == struct_tag.name.to_string()) {
-                                        Some(ms.fields)
-                                    } else {
-                                        None
-                                    };
+                                let fields_found = if let Some(ms) = abi
+                                    .unwrap()
+                                    .structs
+                                    .into_iter()
+                                    .find(|s| s.name.to_string() == struct_tag.name.to_string())
+                                {
+                                    Some(ms.fields)
+                                } else {
+                                    None
+                                };
 
-                                    val = match val {
-                                        MoveValue::Struct(MoveStruct::Runtime(struct_vals)) => {
-                                            MoveValue::Struct(MoveStruct::WithFields(struct_vals.into_iter().map(|v| {
-                                                (Identifier::from_str("dummy").unwrap(), v)
-                                            }).collect()))
-                                        }
-                                        MoveValue::Vector(inner_vals) => {
-                                            MoveValue::Vector(
-                                                inner_vals.into_iter().map(|v| {
-                                                    match v {
-                                                        MoveValue::Struct(MoveStruct::Runtime(struct_vals)) => {
-                                                            MoveValue::Struct(MoveStruct::WithFields(struct_vals.into_iter().map(|v| {
-                                                                (Identifier::from_str("dummy").unwrap(), v)
-                                                            }).collect()))
-                                                        }
-                                                        _ => panic!("")
-                                                    }
-                                                }).collect()
-                                            )
-                                        }
-                                        _ => val
+                                val = match val {
+                                    MoveValue::Struct(MoveStruct::Runtime(struct_vals)) => {
+                                        MoveValue::Struct(MoveStruct::WithFields(
+                                            struct_vals
+                                                .into_iter()
+                                                .map(|v| {
+                                                    (Identifier::from_str("dummy").unwrap(), v)
+                                                })
+                                                .collect(),
+                                        ))
                                     }
+                                    MoveValue::Vector(inner_vals) => MoveValue::Vector(
+                                        inner_vals
+                                            .into_iter()
+                                            .map(|v| match v {
+                                                MoveValue::Struct(MoveStruct::Runtime(
+                                                    struct_vals,
+                                                )) => MoveValue::Struct(MoveStruct::WithFields(
+                                                    struct_vals
+                                                        .into_iter()
+                                                        .map(|v| {
+                                                            (
+                                                                Identifier::from_str("dummy")
+                                                                    .unwrap(),
+                                                                v,
+                                                            )
+                                                        })
+                                                        .collect(),
+                                                )),
+                                                _ => panic!(""),
+                                            })
+                                            .collect(),
+                                    ),
+                                    _ => val,
                                 }
-                                _ => {}
                             }
-                        }
+                            _ => {}
+                        },
                         _ => {}
                     }
                     json_ret_vals.push(move_value_to_json(val));
                 } else {
-                    break
+                    break;
                 }
             }
             execution_res.return_values = json_ret_vals;
@@ -347,6 +377,7 @@ fn get_gas_status(cost_table: &CostTable, gas_budget: Option<u64>) -> Result<Gas
 
 #[cfg(test)]
 mod tests {
+    use crate::converter::move_value_to_json;
     use crate::{
         exec_func, exec_func_internal, get_node_url, ConfigData, ExecutionResult,
         InMemoryLazyStorage, Network, ToolConfig,
@@ -360,7 +391,6 @@ mod tests {
     use once_cell::sync::Lazy;
     use serde_json::Value;
     use simplelog::{Config, SimpleLogger};
-    use crate::converter::move_value_to_json;
 
     static CONFIG: Lazy<ToolConfig> = Lazy::new(|| ConfigData::default().config);
 
@@ -475,7 +505,10 @@ mod tests {
             &mut execution_result,
         );
         assert_eq!(execution_result.return_values.len(), 1);
-        assert_eq!(execution_result.return_values[0], serde_json::to_value(0).unwrap());
+        assert_eq!(
+            execution_result.return_values[0],
+            serde_json::to_value(0).unwrap()
+        );
         debug!("{}", execution_result.return_values[0]);
     }
 }
