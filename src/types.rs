@@ -2,11 +2,12 @@ use clap::{command, Parser, ValueEnum};
 use move_core_types::value::MoveValue;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+use serde_json::Value;
 
 #[derive(Serialize, Debug)]
 pub struct ExecutionResult {
     pub(crate) log_path: String,
-    pub(crate) return_values: Vec<MoveValue>,
+    pub(crate) return_values: Vec<Value>,
 }
 
 #[derive(ValueEnum, Deserialize, Eq, PartialEq, Hash, Clone, Copy, Debug)]

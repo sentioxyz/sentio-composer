@@ -1,7 +1,7 @@
 use aptos_sdk::move_types::account_address::AccountAddress as AptosAccountAddress;
 use aptos_sdk::move_types::language_storage::StructTag as AptosStructTag;
 
-use crate::helper::get_function_module;
+use crate::helper::get_module;
 use anyhow::{bail, Error, Result};
 use aptos_sdk::rest_client::aptos_api_types::mime_types::BCS;
 use aptos_sdk::rest_client::Client;
@@ -135,7 +135,7 @@ impl ModuleResolver for InMemoryLazyStorage {
             }
         }
 
-        let (mod_, _) = get_function_module(
+        let (mod_, _) = get_module(
             self.client.clone(),
             module_id,
             self.network.clone(),
@@ -230,7 +230,7 @@ impl TableResolver for InMemoryLazyStorage {
             .json(&map)
             .send()
             .unwrap();
-        if (resp.status() == StatusCode::NOT_FOUND) {
+        if resp.status() == StatusCode::NOT_FOUND {
             return Ok(None)
         }
 
