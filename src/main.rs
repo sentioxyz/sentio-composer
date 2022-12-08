@@ -39,7 +39,7 @@ use move_vm_runtime::native_extensions::NativeContextExtensions;
 use move_vm_runtime::native_functions::NativeFunctionTable;
 
 use crate::config::{ConfigData, ToolConfig};
-use crate::converter::move_value_to_json;
+use crate::converter::{annotate_value, move_value_to_json};
 use crate::helper::{absolute_path, get_module, get_node_url, serialize_input_params};
 use crate::storage::InMemoryLazyStorage;
 use crate::types::{ExecutionResult, LogLevel, Network, ViewFunction};
@@ -192,112 +192,13 @@ fn exec_func(
                 let tpe = type_iter.next();
                 if let Some(t) = tpe {
                     let mut val = value_iter.next().unwrap();
-                    match t {
-                        MoveType::Struct(struct_tag) => {
-                            let module = ModuleId::new(
-                                AccountAddress::from_bytes(struct_tag.address.inner().into_bytes())
-                                    .unwrap(),
-                                Identifier::from_str(struct_tag.module.as_str()).unwrap(),
-                            );
-                            let (_, abi) = get_module(
-                                client.clone(),
-                                &module,
-                                format!("{}", network),
-                                cache_folder.clone(),
-                            )
-                            .unwrap();
-
-                            let fields_found = if let Some(ms) = abi
-                                .unwrap()
-                                .structs
-                                .into_iter()
-                                .find(|s| s.name.to_string() == struct_tag.name.to_string())
-                            {
-                                Some(ms.fields)
-                            } else {
-                                None
-                            };
-
-                            val = match val {
-                                MoveValue::Struct(MoveStruct::Runtime(struct_vals)) => {
-                                    MoveValue::Struct(MoveStruct::WithFields(
-                                        struct_vals
-                                            .into_iter()
-                                            .map(|v| (Identifier::from_str("dummy").unwrap(), v))
-                                            .collect(),
-                                    ))
-                                }
-                                _ => val,
-                            }
-                        }
-                        MoveType::Vector { items } => match items.borrow() {
-                            MoveType::Struct(struct_tag) => {
-                                let module = ModuleId::new(
-                                    AccountAddress::from_bytes(
-                                        struct_tag.address.inner().into_bytes(),
-                                    )
-                                    .unwrap(),
-                                    Identifier::from_str(struct_tag.module.as_str()).unwrap(),
-                                );
-                                let (_, abi) = get_module(
-                                    client.clone(),
-                                    &module,
-                                    format!("{}", network),
-                                    cache_folder.clone(),
-                                )
-                                .unwrap();
-
-                                let fields_found = if let Some(ms) = abi
-                                    .unwrap()
-                                    .structs
-                                    .into_iter()
-                                    .find(|s| s.name.to_string() == struct_tag.name.to_string())
-                                {
-                                    Some(ms.fields)
-                                } else {
-                                    None
-                                };
-
-                                val = match val {
-                                    MoveValue::Struct(MoveStruct::Runtime(struct_vals)) => {
-                                        MoveValue::Struct(MoveStruct::WithFields(
-                                            struct_vals
-                                                .into_iter()
-                                                .map(|v| {
-                                                    (Identifier::from_str("dummy").unwrap(), v)
-                                                })
-                                                .collect(),
-                                        ))
-                                    }
-                                    MoveValue::Vector(inner_vals) => MoveValue::Vector(
-                                        inner_vals
-                                            .into_iter()
-                                            .map(|v| match v {
-                                                MoveValue::Struct(MoveStruct::Runtime(
-                                                    struct_vals,
-                                                )) => MoveValue::Struct(MoveStruct::WithFields(
-                                                    struct_vals
-                                                        .into_iter()
-                                                        .map(|v| {
-                                                            (
-                                                                Identifier::from_str("dummy")
-                                                                    .unwrap(),
-                                                                v,
-                                                            )
-                                                        })
-                                                        .collect(),
-                                                )),
-                                                _ => panic!(""),
-                                            })
-                                            .collect(),
-                                    ),
-                                    _ => val,
-                                }
-                            }
-                            _ => {}
-                        },
-                        _ => {}
-                    }
+                    val = annotate_value(
+                        val,
+                        &t,
+                        client.clone(),
+                        network.clone(),
+                        cache_folder.clone(),
+                    );
                     json_ret_vals.push(move_value_to_json(val));
                 } else {
                     break;

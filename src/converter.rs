@@ -1,8 +1,15 @@
+use crate::helper::get_module;
+use crate::types::Network;
 use anyhow::{anyhow, Result};
+use aptos_sdk::rest_client::aptos_api_types::MoveType;
+use aptos_sdk::rest_client::Client;
+use move_core_types::account_address::AccountAddress;
 use move_core_types::identifier::Identifier;
-use move_core_types::language_storage::TypeTag;
+use move_core_types::language_storage::{ModuleId, TypeTag};
 use move_core_types::value::{MoveStruct, MoveValue};
 use serde_json::{json, Map, Value};
+use std::borrow::Borrow;
+use std::str::FromStr;
 
 pub fn move_value_to_json(val: MoveValue) -> Value {
     match val {
@@ -31,10 +38,105 @@ pub fn move_value_to_json(val: MoveValue) -> Value {
     }
 }
 
+pub fn annotate_value(
+    val: MoveValue,
+    t: &MoveType,
+    client: Client,
+    network: Network,
+    cache_folder: String,
+) -> MoveValue {
+    let mut annotated_value = val;
+    match t {
+        MoveType::Struct(struct_tag) => {
+            let module = ModuleId::new(
+                AccountAddress::from_bytes(struct_tag.address.inner().into_bytes()).unwrap(),
+                Identifier::from_str(struct_tag.module.as_str()).unwrap(),
+            );
+            let (_, abi) = get_module(
+                client.clone(),
+                &module,
+                format!("{}", network),
+                cache_folder.clone(),
+            )
+            .unwrap();
+
+            let fields_found = if let Some(ms) = abi
+                .unwrap()
+                .structs
+                .into_iter()
+                .find(|s| s.name.to_string() == struct_tag.name.to_string())
+            {
+                Some(ms.fields)
+            } else {
+                None
+            };
+
+            annotated_value = match annotated_value {
+                MoveValue::Struct(MoveStruct::Runtime(struct_vals)) => {
+                    if let Some(fields) = fields_found {
+                        let mut fields_iter = fields.into_iter();
+                        MoveValue::Struct(MoveStruct::WithFields(
+                            struct_vals
+                                .into_iter()
+                                .map(|v| {
+                                    let field = fields_iter.next().unwrap();
+                                    let id =
+                                        Identifier::from_str(field.name.0.into_string().as_str())
+                                            .unwrap();
+                                    let inner_tp: MoveType = field.typ;
+                                    (
+                                        id,
+                                        annotate_value(
+                                            v,
+                                            &inner_tp,
+                                            client.clone(),
+                                            network.clone(),
+                                            cache_folder.clone(),
+                                        ),
+                                    )
+                                })
+                                .collect(),
+                        ))
+                    } else {
+                        MoveValue::Struct(MoveStruct::Runtime(struct_vals))
+                    }
+                }
+                _ => annotated_value,
+            }
+        }
+        MoveType::Vector { items } => match items.borrow() {
+            // Vector of Struct
+            MoveType::Struct(_) => {
+                // value must be vector of struct
+                annotated_value = match annotated_value {
+                    MoveValue::Vector(inner_vals) => MoveValue::Vector(
+                        inner_vals
+                            .into_iter()
+                            .map(|v| {
+                                annotate_value(
+                                    v,
+                                    items.borrow(),
+                                    client.clone(),
+                                    network.clone(),
+                                    cache_folder.clone(),
+                                )
+                            })
+                            .collect(),
+                    ),
+                    _ => panic!("Expect vector value here"),
+                };
+            }
+            _ => {}
+        },
+        _ => {}
+    }
+    annotated_value
+}
+
 fn struct_fields_to_json(fields: Vec<(Identifier, MoveValue)>) -> Value {
     let mut iter = fields.into_iter();
     let mut map = Map::new();
-    if let Some((field_name, field_value)) = iter.next() {
+    while let Some((field_name, field_value)) = iter.next() {
         map.insert(field_name.into_string(), move_value_to_json(field_value));
     }
     Value::Object(map)
@@ -50,7 +152,7 @@ fn is_non_empty_vector_u8(vec: &Vec<MoveValue>) -> bool {
 
 /// Converts the `Vec<MoveValue>` to a `Vec<u8>` if the inner `MoveValue` is a `MoveValue::U8`,
 /// or returns an error otherwise.
-pub fn vec_to_vec_u8(vec: Vec<MoveValue>) -> Result<Vec<u8>> {
+fn vec_to_vec_u8(vec: Vec<MoveValue>) -> Result<Vec<u8>> {
     let mut vec_u8 = Vec::with_capacity(vec.len());
 
     for byte in vec {
