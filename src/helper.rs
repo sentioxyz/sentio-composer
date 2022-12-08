@@ -45,7 +45,7 @@ fn get_cache_path(cache_folder: String) -> String {
         .unwrap();
 }
 
-pub fn get_function_module(
+pub fn get_module(
     client: Client,
     module_id: &ModuleId,
     network: String,

@@ -1,4 +1,5 @@
 mod config;
+mod converter;
 mod helper;
 mod storage;
 mod table;
@@ -7,6 +8,7 @@ mod types;
 extern crate core;
 extern crate log;
 
+use std::borrow::Borrow;
 use std::fs;
 
 use simplelog::*;
@@ -17,6 +19,7 @@ use std::str::FromStr;
 
 use anyhow::Result;
 use aptos_gas::{AbstractValueSizeGasParameters, NativeGasParameters, LATEST_GAS_FEATURE_VERSION};
+use aptos_sdk::rest_client::aptos_api_types::MoveType;
 use aptos_sdk::rest_client::Client;
 
 use clap::Parser;
@@ -25,7 +28,7 @@ use log::{debug, LevelFilter};
 use move_core_types::account_address::AccountAddress;
 use move_core_types::identifier::{IdentStr, Identifier};
 use move_core_types::language_storage::{ModuleId, TypeTag, CORE_CODE_ADDRESS};
-use move_core_types::value::MoveValue;
+use move_core_types::value::{MoveStruct, MoveValue};
 use move_vm_runtime::move_vm::MoveVM;
 use move_vm_test_utils::gas_schedule::{CostTable, Gas, GasStatus};
 use uuid::Uuid;
@@ -36,7 +39,8 @@ use move_vm_runtime::native_extensions::NativeContextExtensions;
 use move_vm_runtime::native_functions::NativeFunctionTable;
 
 use crate::config::{ConfigData, ToolConfig};
-use crate::helper::{absolute_path, get_function_module, get_node_url, serialize_input_params};
+use crate::converter::{annotate_value, move_value_to_json};
+use crate::helper::{absolute_path, get_module, get_node_url, serialize_input_params};
 use crate::storage::InMemoryLazyStorage;
 use crate::types::{ExecutionResult, LogLevel, Network, ViewFunction};
 
@@ -143,7 +147,7 @@ fn exec_func(
     let client = Client::new(get_node_url(network, config));
 
     let cache_folder = config.cache_folder.clone().unwrap();
-    let (_, abi) = get_function_module(
+    let (_, abi) = get_module(
         client.clone(),
         &module,
         format!("{}", network),
@@ -157,8 +161,8 @@ fn exec_func(
         .into_iter()
         .find(|f| f.name.to_string() == func_id.to_string());
 
-    let param_types = if let Some(f) = matched_func {
-        f.params
+    let (param_types, ret_types) = if let Some(f) = matched_func {
+        (f.params, f.return_)
     } else {
         panic!("No matched function found!");
     };
@@ -175,12 +179,33 @@ fn exec_func(
         ledger_version,
         format!("{}", network),
         client.clone(),
-        cache_folder,
+        cache_folder.clone(),
     );
     let res = exec_func_internal(storage, module, func_id, type_args, ser_args);
     match res {
         None => execution_res.return_values = vec![],
-        Some(vals) => execution_res.return_values = vals,
+        Some(vals) => {
+            let mut value_iter = vals.into_iter();
+            let mut type_iter = ret_types.into_iter();
+            let mut json_ret_vals = vec![];
+            loop {
+                let tpe = type_iter.next();
+                if let Some(t) = tpe {
+                    let mut val = value_iter.next().unwrap();
+                    val = annotate_value(
+                        val,
+                        &t,
+                        client.clone(),
+                        network.clone(),
+                        cache_folder.clone(),
+                    );
+                    json_ret_vals.push(move_value_to_json(val));
+                } else {
+                    break;
+                }
+            }
+            execution_res.return_values = json_ret_vals;
+        }
     }
 }
 
@@ -253,6 +278,7 @@ fn get_gas_status(cost_table: &CostTable, gas_budget: Option<u64>) -> Result<Gas
 
 #[cfg(test)]
 mod tests {
+    use crate::converter::move_value_to_json;
     use crate::{
         exec_func, exec_func_internal, get_node_url, ConfigData, ExecutionResult,
         InMemoryLazyStorage, Network, ToolConfig,
@@ -264,6 +290,7 @@ mod tests {
     use move_core_types::language_storage::{ModuleId, TypeTag};
     use move_core_types::value::MoveValue;
     use once_cell::sync::Lazy;
+    use serde_json::Value;
     use simplelog::{Config, SimpleLogger};
 
     static CONFIG: Lazy<ToolConfig> = Lazy::new(|| ConfigData::default().config);
@@ -379,7 +406,10 @@ mod tests {
             &mut execution_result,
         );
         assert_eq!(execution_result.return_values.len(), 1);
-        assert_eq!(execution_result.return_values[0], MoveValue::U64(0));
+        assert_eq!(
+            execution_result.return_values[0],
+            serde_json::to_value(0).unwrap()
+        );
         debug!("{}", execution_result.return_values[0]);
     }
 }

@@ -1,7 +1,7 @@
 use aptos_sdk::move_types::account_address::AccountAddress as AptosAccountAddress;
 use aptos_sdk::move_types::language_storage::StructTag as AptosStructTag;
 
-use crate::helper::get_function_module;
+use crate::helper::get_module;
 use anyhow::{bail, Error, Result};
 use aptos_sdk::rest_client::aptos_api_types::mime_types::BCS;
 use aptos_sdk::rest_client::Client;
@@ -13,13 +13,13 @@ use move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
 use move_core_types::resolver::{ModuleResolver, ResourceResolver};
 use move_table_extension::{TableHandle, TableResolver};
 use reqwest::header::ACCEPT;
+use reqwest::StatusCode;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::{
     collections::{btree_map, BTreeMap},
     fmt::Debug,
 };
-use reqwest::StatusCode;
 use tokio::runtime::Runtime;
 
 /// Simple in-memory storage for modules and resources under an account.
@@ -135,7 +135,7 @@ impl ModuleResolver for InMemoryLazyStorage {
             }
         }
 
-        let (mod_, _) = get_function_module(
+        let (mod_, _) = get_module(
             self.client.clone(),
             module_id,
             self.network.clone(),
@@ -230,8 +230,8 @@ impl TableResolver for InMemoryLazyStorage {
             .json(&map)
             .send()
             .unwrap();
-        if (resp.status() == StatusCode::NOT_FOUND) {
-            return Ok(None)
+        if resp.status() == StatusCode::NOT_FOUND {
+            return Ok(None);
         }
 
         let bytes = resp.bytes().unwrap();
