@@ -40,11 +40,11 @@ impl CacheModuleResolver {
         } else {
             let addr = module_id.address();
             // Get modules from the local cache if it starts from 0x1 or 0x3
-            if addr.to_hex_literal() == "0x1" || addr.to_hex_literal() == "0x3" {
-                if let Some(res) = self.try_load_module_from_disk_cache(module_id) {
-                    return Ok(res);
-                }
+            // if addr.to_hex_literal() == "0x1" || addr.to_hex_literal() == "0x3" {
+            if let Some(res) = self.try_load_module_from_disk_cache(module_id) {
+                return Ok(res);
             }
+            // }
             use aptos_sdk::move_types::account_address::AccountAddress as AptosAccountAddress;
             let aptos_account = AptosAccountAddress::from_bytes(addr.into_bytes()).unwrap();
             let mut abi: Option<MoveModule> = None;
@@ -60,19 +60,20 @@ impl CacheModuleResolver {
                     {
                         abi = mod_.abi;
                         // caching the module into memory before head
-                        self.module_cache.insert(
-                            module_id.clone(),
-                            (Some(module.bytecode.0.clone()), abi.clone()),
-                        );
+                        // self.module_cache.insert(
+                        //     module_id.clone(),
+                        //     (Some(module.bytecode.0.clone()), abi.clone()),
+                        // );
+                        self.cache_module_to_disk(module_id, module.bytecode.0.clone());
                         return abi.as_ref().unwrap().name.as_str() == module_id.name().as_str();
                     }
                     false
                 });
             if let Some(module) = matched_module {
                 debug!("load module: {}::{}", addr, module_id.name().as_str());
-                if addr.to_hex_literal() == "0x1" || addr.to_hex_literal() == "0x3" {
-                    self.cache_module_to_disk(module_id, module.bytecode.0.clone());
-                }
+                // if addr.to_hex_literal() == "0x1" || addr.to_hex_literal() == "0x3" {
+                //     self.cache_module_to_disk(module_id, module.bytecode.0.clone());
+                // }
                 return Ok((Option::from(module.bytecode.0.clone()), abi));
             }
             Ok((None, abi))
