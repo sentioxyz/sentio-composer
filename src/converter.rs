@@ -1,4 +1,4 @@
-use crate::helper::get_module;
+use crate::module_resolver::CacheModuleResolver;
 use crate::types::Network;
 use anyhow::{anyhow, Result};
 use aptos_sdk::rest_client::aptos_api_types::MoveType;
@@ -41,9 +41,7 @@ pub fn move_value_to_json(val: MoveValue) -> Value {
 pub fn annotate_value(
     val: MoveValue,
     t: &MoveType,
-    client: Client,
-    network: Network,
-    cache_folder: String,
+    module_resolver: &mut CacheModuleResolver,
 ) -> MoveValue {
     let mut annotated_value = val;
     match t {
@@ -52,13 +50,7 @@ pub fn annotate_value(
                 AccountAddress::from_bytes(struct_tag.address.inner().into_bytes()).unwrap(),
                 Identifier::from_str(struct_tag.module.as_str()).unwrap(),
             );
-            let (_, abi) = get_module(
-                client.clone(),
-                &module,
-                format!("{}", network),
-                cache_folder.clone(),
-            )
-            .unwrap();
+            let (_, abi) = module_resolver.get_module(&module).unwrap();
 
             let fields_found = if let Some(ms) = abi
                 .unwrap()
@@ -84,16 +76,7 @@ pub fn annotate_value(
                                         Identifier::from_str(field.name.0.into_string().as_str())
                                             .unwrap();
                                     let inner_tp: MoveType = field.typ;
-                                    (
-                                        id,
-                                        annotate_value(
-                                            v,
-                                            &inner_tp,
-                                            client.clone(),
-                                            network.clone(),
-                                            cache_folder.clone(),
-                                        ),
-                                    )
+                                    (id, annotate_value(v, &inner_tp, module_resolver))
                                 })
                                 .collect(),
                         ))
@@ -112,15 +95,7 @@ pub fn annotate_value(
                     MoveValue::Vector(inner_vals) => MoveValue::Vector(
                         inner_vals
                             .into_iter()
-                            .map(|v| {
-                                annotate_value(
-                                    v,
-                                    items.borrow(),
-                                    client.clone(),
-                                    network.clone(),
-                                    cache_folder.clone(),
-                                )
-                            })
+                            .map(|v| annotate_value(v, items.borrow(), module_resolver))
                             .collect(),
                     ),
                     _ => panic!("Expect vector value here"),

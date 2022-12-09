@@ -1,6 +1,7 @@
 mod config;
 mod converter;
 mod helper;
+mod module_resolver;
 mod storage;
 mod table;
 mod types;
@@ -40,7 +41,8 @@ use move_vm_runtime::native_functions::NativeFunctionTable;
 
 use crate::config::{ConfigData, ToolConfig};
 use crate::converter::{annotate_value, move_value_to_json};
-use crate::helper::{absolute_path, get_module, get_node_url, serialize_input_params};
+use crate::helper::{absolute_path, get_node_url, serialize_input_params};
+use crate::module_resolver::CacheModuleResolver;
 use crate::storage::InMemoryLazyStorage;
 use crate::types::{ExecutionResult, LogLevel, Network, ViewFunction};
 
@@ -145,16 +147,10 @@ fn exec_func(
     let func_id = IdentStr::new(splitted_func.next().unwrap()).unwrap();
 
     let client = Client::new(get_node_url(network, config));
-
     let cache_folder = config.cache_folder.clone().unwrap();
-    let (_, abi) = get_module(
-        client.clone(),
-        &module,
-        format!("{}", network),
-        cache_folder.clone(),
-    )
-    .unwrap();
-
+    let mut module_resolver =
+        CacheModuleResolver::new(network, client.clone(), cache_folder.clone());
+    let (_, abi) = module_resolver.get_module(&module).unwrap();
     let matched_func = abi
         .unwrap()
         .exposed_functions
@@ -177,7 +173,7 @@ fn exec_func(
 
     let storage = InMemoryLazyStorage::new(
         ledger_version,
-        format!("{}", network),
+        network.clone(),
         client.clone(),
         cache_folder.clone(),
     );
@@ -192,13 +188,7 @@ fn exec_func(
                 let tpe = type_iter.next();
                 if let Some(t) = tpe {
                     let mut val = value_iter.next().unwrap();
-                    val = annotate_value(
-                        val,
-                        &t,
-                        client.clone(),
-                        network.clone(),
-                        cache_folder.clone(),
-                    );
+                    val = annotate_value(val, &t, &mut module_resolver);
                     json_ret_vals.push(move_value_to_json(val));
                 } else {
                     break;
@@ -304,12 +294,7 @@ mod tests {
     #[test]
     fn test_call_aptos_function() {
         let client = Client::new(get_node_url(&Network::Mainnet, &CONFIG));
-        let storage = InMemoryLazyStorage::new(
-            0,
-            format!("{}", Network::Mainnet),
-            client,
-            String::from("."),
-        );
+        let storage = InMemoryLazyStorage::new(0, Network::Mainnet, client, String::from("."));
         let addr = AccountAddress::from_hex_literal(
             "0x54ad3d30af77b60d939ae356e6606de9a4da67583f02b962d2d3f2e481484e90",
         )
