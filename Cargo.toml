@@ -7,7 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-aptos-sdk = { git = "https://github.com/aptos-labs/aptos-core", branch = "mainnet" }
+aptos-sdk = { git = "https://github.com/aptos-labs/aptos-core", rev = "16781dcd0e8683c7408aed5f8e5de3c896ec152b" }
 url = "2.3.1"
 once_cell = "1.7.2"
 anyhow = "1.0.62"
