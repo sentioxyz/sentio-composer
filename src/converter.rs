@@ -41,7 +41,7 @@ pub fn move_value_to_json(val: MoveValue) -> Value {
 pub fn annotate_value(
     val: MoveValue,
     t: &MoveType,
-    module_resolver: &mut CacheModuleResolver,
+    module_resolver: &CacheModuleResolver,
 ) -> MoveValue {
     let mut annotated_value = val;
     match t {

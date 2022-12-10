@@ -7256,6 +7256,7 @@ dependencies = [
  "move-vm-test-utils 0.1.0 (git+https://github.com/move-language/move?rev=f7137eabc2046f76fdad3ded2c51e03a3b1fbd01)",
  "move-vm-types 0.1.0 (git+https://github.com/move-language/move?rev=f7137eabc2046f76fdad3ded2c51e03a3b1fbd01)",
  "once_cell",
+ "parking_lot 0.12.1",
  "path-clean",
  "reqwest",
  "serde 1.0.147",

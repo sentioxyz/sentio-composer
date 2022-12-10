@@ -1,6 +1,6 @@
 use clap::{command, Parser, ValueEnum};
 use move_core_types::value::MoveValue;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::fmt::{Display, Formatter};
 
@@ -10,7 +10,7 @@ pub struct ExecutionResult {
     pub(crate) return_values: Vec<Value>,
 }
 
-#[derive(ValueEnum, Deserialize, Eq, PartialEq, Hash, Clone, Copy, Debug)]
+#[derive(ValueEnum, Eq, PartialEq, Hash, Clone, Copy, Debug)]
 pub enum Network {
     Mainnet,
     Testnet,
@@ -25,6 +25,20 @@ impl Display for Network {
             Network::Devnet => "devnet",
         };
         write!(f, "{}", str)
+    }
+}
+
+impl<'de> Deserialize<'de> for Network {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(match s.to_lowercase().as_str() {
+            "testnet" => Network::Testnet,
+            "mainnet" => Network::Mainnet,
+            "devnet" => Network::Devnet,
+            _ => panic!("unknown network: {}", s),
+        })
     }
 }
 

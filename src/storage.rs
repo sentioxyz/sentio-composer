@@ -23,6 +23,7 @@ use std::{
     collections::{btree_map, BTreeMap},
     fmt::Debug,
 };
+use std::sync::RwLock;
 use tokio::runtime::Runtime;
 
 /// Simple in-memory storage for modules and resources under an account.
@@ -85,13 +86,13 @@ impl InMemoryAccountStorage {
 }
 
 /// Simple in-memory lazy storage that can be used as a Move VM storage backend. It restores resources from the Aptos chain
-#[derive(Clone)]
+// #[derive(Clone)]
 pub struct InMemoryLazyStorage {
     accounts: BTreeMap<AccountAddress, InMemoryAccountStorage>,
     ledger_version: u64,
     network: Network,
     client: Client,
-    cache_folder: String,
+    module_resolver: CacheModuleResolver,
 }
 
 impl InMemoryLazyStorage {
@@ -116,14 +117,14 @@ impl InMemoryLazyStorage {
         ledger_version: u64,
         network: Network,
         client: Client,
-        cache_folder: String,
+        module_resolver: CacheModuleResolver
     ) -> Self {
         Self {
             accounts: BTreeMap::new(),
             ledger_version,
             network,
             client,
-            cache_folder,
+            module_resolver
         }
     }
 }
@@ -132,12 +133,7 @@ impl ModuleResolver for InMemoryLazyStorage {
     type Error = ();
 
     fn get_module(&self, module_id: &ModuleId) -> Result<Option<Vec<u8>>, Self::Error> {
-        let mut module_resolver = CacheModuleResolver::new(
-            &self.network,
-            self.client.clone(),
-            self.cache_folder.clone(),
-        );
-        let (mod_, _) = module_resolver.get_module(module_id).unwrap();
+        let (mod_, _) = self.module_resolver.get_module(module_id).unwrap();
 
         Ok(mod_)
     }

@@ -9,7 +9,6 @@ mod types;
 extern crate core;
 extern crate log;
 
-use std::borrow::Borrow;
 use std::fs;
 
 use simplelog::*;
@@ -20,7 +19,6 @@ use std::str::FromStr;
 
 use anyhow::Result;
 use aptos_gas::{AbstractValueSizeGasParameters, NativeGasParameters, LATEST_GAS_FEATURE_VERSION};
-use aptos_sdk::rest_client::aptos_api_types::MoveType;
 use aptos_sdk::rest_client::Client;
 
 use clap::Parser;
@@ -29,7 +27,7 @@ use log::{debug, LevelFilter};
 use move_core_types::account_address::AccountAddress;
 use move_core_types::identifier::{IdentStr, Identifier};
 use move_core_types::language_storage::{ModuleId, TypeTag, CORE_CODE_ADDRESS};
-use move_core_types::value::{MoveStruct, MoveValue};
+use move_core_types::value::MoveValue;
 use move_vm_runtime::move_vm::MoveVM;
 use move_vm_test_utils::gas_schedule::{CostTable, Gas, GasStatus};
 use uuid::Uuid;
@@ -37,7 +35,6 @@ use uuid::Uuid;
 use aptos_vm::natives;
 use move_table_extension::NativeTableContext;
 use move_vm_runtime::native_extensions::NativeContextExtensions;
-use move_vm_runtime::native_functions::NativeFunctionTable;
 
 use crate::config::{ConfigData, ToolConfig};
 use crate::converter::{annotate_value, move_value_to_json};
@@ -45,8 +42,6 @@ use crate::helper::{absolute_path, get_node_url, serialize_input_params};
 use crate::module_resolver::CacheModuleResolver;
 use crate::storage::InMemoryLazyStorage;
 use crate::types::{ExecutionResult, LogLevel, Network, ViewFunction};
-
-const STD_ADDR: AccountAddress = AccountAddress::ONE;
 
 fn main() {
     let command = ViewFunction::parse();
@@ -62,10 +57,8 @@ fn main() {
     let mut tool_config = ToolConfig::default();
     if let Some(config_file) = config {
         tool_config = load_config(config_file.as_str());
-        debug!("Use config file: {}", config_file);
     } else {
         tool_config = load_config("config.toml");
-        debug!("Use default config file: config.toml");
     }
 
     let log_path = set_up_log(&tool_config, format!("{}", log_level));
@@ -148,8 +141,8 @@ fn exec_func(
 
     let client = Client::new(get_node_url(network, config));
     let cache_folder = config.cache_folder.clone().unwrap();
-    let mut module_resolver =
-        CacheModuleResolver::new(network, client.clone(), cache_folder.clone());
+    let module_resolver =
+        CacheModuleResolver::new(network, client.clone(), cache_folder.clone(), config.enable_module_caching);
     let (_, abi) = module_resolver.get_module(&module).unwrap();
     let matched_func = abi
         .unwrap()
@@ -175,7 +168,7 @@ fn exec_func(
         ledger_version,
         network.clone(),
         client.clone(),
-        cache_folder.clone(),
+        module_resolver.clone()
     );
     let res = exec_func_internal(storage, module, func_id, type_args, ser_args);
     match res {
@@ -188,7 +181,7 @@ fn exec_func(
                 let tpe = type_iter.next();
                 if let Some(t) = tpe {
                     let mut val = value_iter.next().unwrap();
-                    val = annotate_value(val, &t, &mut module_resolver);
+                    val = annotate_value(val, &t, &module_resolver);
                     json_ret_vals.push(move_value_to_json(val));
                 } else {
                     break;
@@ -289,33 +282,6 @@ mod tests {
     #[ctor::ctor]
     fn init() {
         SimpleLogger::init(LevelFilter::Debug, Config::default()).unwrap();
-    }
-
-    #[test]
-    fn test_call_aptos_function() {
-        let client = Client::new(get_node_url(&Network::Mainnet, &CONFIG));
-        let storage = InMemoryLazyStorage::new(0, Network::Mainnet, client, String::from("."));
-        let addr = AccountAddress::from_hex_literal(
-            "0x54ad3d30af77b60d939ae356e6606de9a4da67583f02b962d2d3f2e481484e90",
-        )
-        .unwrap();
-        let module = ModuleId::new(addr, Identifier::new("packet").unwrap());
-        let func = IdentStr::new("hash_sha3_packet_bytes").unwrap();
-        let type_args: Vec<TypeTag> = vec![];
-        let mut args: Vec<Vec<u8>> = Vec::new();
-        args.push(
-            MoveValue::vector_u8("bar".as_bytes().to_vec())
-                .simple_serialize()
-                .unwrap(),
-        );
-        let res = exec_func_internal(storage, module, func, type_args, args);
-        match res {
-            None => {}
-            Some(val) => {
-                assert_eq!(val.len(), 1);
-                debug!("[{}]", val[0]);
-            }
-        }
     }
 
     #[test]
