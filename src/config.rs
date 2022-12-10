@@ -16,7 +16,7 @@ pub struct ToolConfig {
     pub cache_folder: Option<String>,
     pub network_configs: HashMap<Network, String>,
     #[serde(default)]
-    pub enable_module_caching: bool
+    pub enable_module_caching: bool,
 }
 
 impl ToolConfig {
@@ -42,7 +42,7 @@ impl ToolConfig {
             log_folder: Some(String::from(".log")),
             cache_folder: Some(home_path),
             network_configs,
-            enable_module_caching: false
+            enable_module_caching: false,
         }
     }
 }
@@ -61,9 +61,10 @@ impl ConfigData {
         let data: ConfigData = match toml::from_str(&contents) {
             Ok(d) => d,
             Err(e) => {
-                panic!("Unable to load data from the config file `{}`, error: {}",
-                    file_path,
-                    e);
+                panic!(
+                    "Unable to load data from the config file `{}`, error: {}",
+                    file_path, e
+                );
             }
         };
         if let Some(folder) = data.config.log_folder {
@@ -86,7 +87,7 @@ impl ConfigData {
                 log_folder: None,
                 cache_folder: None,
                 network_configs: HashMap::new(),
-                enable_module_caching: false
+                enable_module_caching: false,
             },
         }
     }

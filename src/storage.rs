@@ -19,11 +19,11 @@ use std::borrow::BorrowMut;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::str::FromStr;
+use std::sync::RwLock;
 use std::{
     collections::{btree_map, BTreeMap},
     fmt::Debug,
 };
-use std::sync::RwLock;
 use tokio::runtime::Runtime;
 
 /// Simple in-memory storage for modules and resources under an account.
@@ -117,14 +117,14 @@ impl InMemoryLazyStorage {
         ledger_version: u64,
         network: Network,
         client: Client,
-        module_resolver: CacheModuleResolver
+        module_resolver: CacheModuleResolver,
     ) -> Self {
         Self {
             accounts: BTreeMap::new(),
             ledger_version,
             network,
             client,
-            module_resolver
+            module_resolver,
         }
     }
 }

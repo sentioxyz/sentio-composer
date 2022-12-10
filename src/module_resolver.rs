@@ -4,13 +4,13 @@ use aptos_sdk::rest_client::aptos_api_types::MoveModule;
 use aptos_sdk::rest_client::{Client, MoveModuleBytecode};
 use log::{debug, warn};
 use move_core_types::account_address::AccountAddress;
+use move_core_types::identifier::Identifier;
 use move_core_types::language_storage::ModuleId;
+use parking_lot::RwLock;
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::path::Path;
 use std::str::FromStr;
-use move_core_types::identifier::Identifier;
-use parking_lot::RwLock;
 use tokio::runtime::Runtime;
 
 pub struct CacheModuleResolver {
@@ -18,7 +18,7 @@ pub struct CacheModuleResolver {
     client: Client,
     cache_folder: String,
     module_cache: RwLock<HashMap<ModuleId, (Option<Vec<u8>>, Option<MoveModule>)>>,
-    enable_module_caching: bool
+    enable_module_caching: bool,
 }
 
 impl Clone for CacheModuleResolver {
@@ -28,19 +28,24 @@ impl Clone for CacheModuleResolver {
             client: self.client.clone(),
             cache_folder: self.cache_folder.clone(),
             module_cache: RwLock::new(self.module_cache.read().clone()),
-            enable_module_caching: self.enable_module_caching
+            enable_module_caching: self.enable_module_caching,
         }
     }
 }
 
 impl CacheModuleResolver {
-    pub fn new(network: &Network, client: Client, cache_folder: String, enable_module_caching: bool) -> Self {
+    pub fn new(
+        network: &Network,
+        client: Client,
+        cache_folder: String,
+        enable_module_caching: bool,
+    ) -> Self {
         Self {
             network: *network,
             client,
             cache_folder,
             module_cache: RwLock::new(HashMap::new()),
-            enable_module_caching
+            enable_module_caching,
         }
     }
 
@@ -52,10 +57,9 @@ impl CacheModuleResolver {
         if let Some(res) = locked_cache.get(module_id) {
             debug!("loading module {} from memory cache", module_id);
             return match res {
-                (Some(bytecode), Some(abi)) =>
-                    Ok((Some(bytecode.clone()), Some(abi.clone()))),
+                (Some(bytecode), Some(abi)) => Ok((Some(bytecode.clone()), Some(abi.clone()))),
                 _ => Ok((None, None)),
-            }
+            };
         }
         drop(locked_cache);
         let addr = module_id.address();
@@ -84,7 +88,7 @@ impl CacheModuleResolver {
                     let module_name = abi.as_ref().unwrap().name.as_str();
                     let inner_module_id = &ModuleId::new(
                         AccountAddress::from_str(module_address.as_str()).unwrap(),
-                        Identifier::from_str(module_name).unwrap()
+                        Identifier::from_str(module_name).unwrap(),
                     );
                     // caching the module into memory before head
                     let mut locked_cache = self.module_cache.write();
@@ -110,7 +114,9 @@ impl CacheModuleResolver {
     }
 
     fn is_cached_module(&self, addr: &AccountAddress) -> bool {
-        self.enable_module_caching || addr.to_hex_literal() == "0x1" || addr.to_hex_literal() == "0x3"
+        self.enable_module_caching
+            || addr.to_hex_literal() == "0x1"
+            || addr.to_hex_literal() == "0x3"
     }
 
     fn try_load_module_from_disk_cache(
@@ -122,10 +128,7 @@ impl CacheModuleResolver {
         let cached_module = cacache::read_sync(cache_path, module_cache_key);
         match cached_module {
             Ok(m) => {
-                debug!(
-                    "loaded module from disk cache: {}",
-                    module_id
-                );
+                debug!("loaded module from disk cache: {}", module_id);
                 let _abi = MoveModuleBytecode::new(m.clone())
                     .try_parse_abi()
                     .unwrap()

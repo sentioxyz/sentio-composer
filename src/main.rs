@@ -3,7 +3,6 @@ mod converter;
 mod helper;
 mod module_resolver;
 mod storage;
-mod table;
 mod types;
 
 extern crate core;
@@ -141,8 +140,12 @@ fn exec_func(
 
     let client = Client::new(get_node_url(network, config));
     let cache_folder = config.cache_folder.clone().unwrap();
-    let module_resolver =
-        CacheModuleResolver::new(network, client.clone(), cache_folder.clone(), config.enable_module_caching);
+    let module_resolver = CacheModuleResolver::new(
+        network,
+        client.clone(),
+        cache_folder.clone(),
+        config.enable_module_caching,
+    );
     let (_, abi) = module_resolver.get_module(&module).unwrap();
     let matched_func = abi
         .unwrap()
@@ -168,7 +171,7 @@ fn exec_func(
         ledger_version,
         network.clone(),
         client.clone(),
-        module_resolver.clone()
+        module_resolver.clone(),
     );
     let res = exec_func_internal(storage, module, func_id, type_args, ser_args);
     match res {

@@ -30,7 +30,8 @@ impl Display for Network {
 
 impl<'de> Deserialize<'de> for Network {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
         Ok(match s.to_lowercase().as_str() {

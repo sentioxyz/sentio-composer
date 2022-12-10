@@ -37,9 +37,6 @@ uuid = { version = "1.2.1", features = [
     "fast-rng",          # Use a faster (but still sufficiently random) RNG
     "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
 ]}
-better_any = "0.1.1"
-sha3 = "0.9.1"
-smallvec = "1.7.0"
 reqwest = { version = "0.11.12", features = ["blocking", "json"] }
 parking_lot = "0.12"
 
