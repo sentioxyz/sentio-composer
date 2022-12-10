@@ -28,6 +28,16 @@ impl Display for Network {
     }
 }
 
+impl Network {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Network::Mainnet => "mainnet",
+            Network::Testnet => "testnet",
+            Network::Devnet => "devnet",
+        }
+    }
+}
+
 #[derive(ValueEnum, Copy, Clone, Debug)]
 pub enum LogLevel {
     /// A level lower than all log levels.

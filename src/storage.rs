@@ -1,7 +1,8 @@
 use aptos_sdk::move_types::account_address::AccountAddress as AptosAccountAddress;
 use aptos_sdk::move_types::language_storage::StructTag as AptosStructTag;
 
-use crate::helper::get_module;
+use crate::module_resolver::CacheModuleResolver;
+use crate::types::Network;
 use anyhow::{bail, Error, Result};
 use aptos_sdk::rest_client::aptos_api_types::mime_types::BCS;
 use aptos_sdk::rest_client::Client;
@@ -14,6 +15,8 @@ use move_core_types::resolver::{ModuleResolver, ResourceResolver};
 use move_table_extension::{TableHandle, TableResolver};
 use reqwest::header::ACCEPT;
 use reqwest::StatusCode;
+use std::borrow::BorrowMut;
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::{
@@ -86,7 +89,7 @@ impl InMemoryAccountStorage {
 pub struct InMemoryLazyStorage {
     accounts: BTreeMap<AccountAddress, InMemoryAccountStorage>,
     ledger_version: u64,
-    network: String,
+    network: Network,
     client: Client,
     cache_folder: String,
 }
@@ -109,7 +112,12 @@ impl InMemoryLazyStorage {
         Ok(())
     }
 
-    pub fn new(ledger_version: u64, network: String, client: Client, cache_folder: String) -> Self {
+    pub fn new(
+        ledger_version: u64,
+        network: Network,
+        client: Client,
+        cache_folder: String,
+    ) -> Self {
         Self {
             accounts: BTreeMap::new(),
             ledger_version,
@@ -124,24 +132,12 @@ impl ModuleResolver for InMemoryLazyStorage {
     type Error = ();
 
     fn get_module(&self, module_id: &ModuleId) -> Result<Option<Vec<u8>>, Self::Error> {
-        // We should never hit this as there's no in-memory cache
-        if let Some(account_storage) = self.accounts.get(module_id.address()) {
-            let cached_module = account_storage.modules.get(module_id.name()).cloned();
-            match cached_module {
-                None => {}
-                Some(m) => {
-                    return Ok(Some(m));
-                }
-            }
-        }
-
-        let (mod_, _) = get_module(
+        let mut module_resolver = CacheModuleResolver::new(
+            &self.network,
             self.client.clone(),
-            module_id,
-            self.network.clone(),
             self.cache_folder.clone(),
-        )
-        .unwrap();
+        );
+        let (mod_, _) = module_resolver.get_module(module_id).unwrap();
 
         Ok(mod_)
     }
@@ -155,15 +151,6 @@ impl ResourceResolver for InMemoryLazyStorage {
         address: &AccountAddress,
         tag: &StructTag,
     ) -> Result<Option<Vec<u8>>, Self::Error> {
-        if let Some(account_storage) = self.accounts.get(address) {
-            let cached_resource = account_storage.resources.get(tag).cloned();
-            match cached_resource {
-                None => {}
-                Some(r) => {
-                    return Ok(Some(r));
-                }
-            }
-        }
         // Get account's resources from the chain
         let rest_client = self.client.clone();
         let aptos_account = AptosAccountAddress::from_bytes(address.into_bytes());
