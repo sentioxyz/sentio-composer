@@ -362,7 +362,7 @@ mod tests {
         assert_eq!(execution_result.return_values.len(), 1);
         assert_eq!(
             execution_result.return_values[0],
-            serde_json::to_value(0).unwrap()
+            serde_json::to_value("0").unwrap()
         );
         debug!("{}", execution_result.return_values[0]);
     }
