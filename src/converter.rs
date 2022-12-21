@@ -14,7 +14,7 @@ use std::str::FromStr;
 pub fn move_value_to_json(val: MoveValue) -> Value {
     match val {
         MoveValue::U8(n) => serde_json::to_value(n).unwrap(),
-        MoveValue::U64(n) => serde_json::to_value(n).unwrap(),
+        MoveValue::U64(n) => serde_json::to_value(n.to_string()).unwrap(),
         MoveValue::U128(n) => serde_json::to_value(n.to_string()).unwrap(),
         MoveValue::Bool(b) => serde_json::to_value(b).unwrap(),
         MoveValue::Address(add) => serde_json::to_value(add).unwrap(),
@@ -158,7 +158,7 @@ mod tests {
         assert_eq!(move_value_to_json(u8_val), json!(0));
 
         let u64_val = MoveValue::U64(0);
-        assert_eq!(move_value_to_json(u64_val), json!(0));
+        assert_eq!(move_value_to_json(u64_val), json!("0"));
 
         let u128_val = MoveValue::U128(0);
         assert_eq!(move_value_to_json(u128_val), json!("0"));
